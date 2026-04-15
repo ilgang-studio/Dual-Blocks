@@ -138,4 +138,4 @@ lib/
 
 ## Author
 
-Developed by [Your Name]
+Developed by il gang
