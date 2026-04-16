@@ -1,0 +1,4 @@
+enum CellState {
+  empty,
+  filled,
+}
