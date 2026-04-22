@@ -28,6 +28,7 @@ class GameLayout {
         col >= GameConstants.boardSize) {
       return null;
     }
-    return math.Point<int>(row, col);
+    // Keep Cartesian semantics: x = column, y = row.
+    return math.Point<int>(col, row);
   }
 }
