@@ -23,20 +23,30 @@ class DualBlocksGame extends FlameGame with TapCallbacks {
   );
 
   bool canPlace(int row, int col) {
-    return PlacementSystem.canPlace(
+    final selectedShape = _selectedShape;
+    if (selectedShape == null) return false;
+    return PlacementSystem.canPlaceShape(
       board: board,
-      row: row,
-      col: col,
+      anchorRow: row,
+      anchorCol: col,
+      shape: selectedShape,
     );
   }
 
   bool placeBlock(int row, int col) {
-    final placed = PlacementSystem.placeBlock(
+    final selectedShape = _selectedShape;
+    if (selectedShape == null) return false;
+
+    final placed = PlacementSystem.placeShape(
       board: board,
-      row: row,
-      col: col,
+      anchorRow: row,
+      anchorCol: col,
+      shape: selectedShape,
     );
-    if (placed) score += 1;
+    if (placed) {
+      score += selectedShape.cells.length;
+      _consumeSelectedTrayBlock();
+    }
     return placed;
   }
 
@@ -85,6 +95,27 @@ class DualBlocksGame extends FlameGame with TapCallbacks {
   void _refillTray() {
     trayBlocks = List<BlockShape?>.from(BlockCatalog.starterSet);
     selectedTrayIndex = trayBlocks.isNotEmpty ? 0 : null;
+  }
+
+  BlockShape? get _selectedShape {
+    final index = selectedTrayIndex;
+    if (index == null) return null;
+    if (index < 0 || index >= trayBlocks.length) return null;
+    return trayBlocks[index];
+  }
+
+  void _consumeSelectedTrayBlock() {
+    final index = selectedTrayIndex;
+    if (index == null) return;
+    if (index < 0 || index >= trayBlocks.length) return;
+
+    trayBlocks[index] = null;
+
+    final next = trayBlocks.indexWhere((shape) => shape != null);
+    selectedTrayIndex = next == -1 ? null : next;
+    if (selectedTrayIndex == null) {
+      _refillTray();
+    }
   }
 
   @override

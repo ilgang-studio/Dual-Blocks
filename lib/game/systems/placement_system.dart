@@ -1,4 +1,5 @@
 import '../models/cell_state.dart';
+import '../models/block_shape.dart';
 
 class PlacementSystem {
   static bool canPlace({
@@ -17,6 +18,43 @@ class PlacementSystem {
   }) {
     if (!canPlace(board: board, row: row, col: col)) return false;
     board[row][col] = CellState.filled;
+    return true;
+  }
+
+  static bool canPlaceShape({
+    required List<List<CellState>> board,
+    required int anchorRow,
+    required int anchorCol,
+    required BlockShape shape,
+  }) {
+    for (final cell in shape.cells) {
+      final row = anchorRow + cell.y;
+      final col = anchorCol + cell.x;
+      if (!canPlace(board: board, row: row, col: col)) return false;
+    }
+    return true;
+  }
+
+  static bool placeShape({
+    required List<List<CellState>> board,
+    required int anchorRow,
+    required int anchorCol,
+    required BlockShape shape,
+  }) {
+    if (!canPlaceShape(
+      board: board,
+      anchorRow: anchorRow,
+      anchorCol: anchorCol,
+      shape: shape,
+    )) {
+      return false;
+    }
+
+    for (final cell in shape.cells) {
+      final row = anchorRow + cell.y;
+      final col = anchorCol + cell.x;
+      board[row][col] = CellState.filled;
+    }
     return true;
   }
 
