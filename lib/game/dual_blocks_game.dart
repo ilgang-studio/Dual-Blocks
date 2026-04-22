@@ -35,6 +35,11 @@ class DualBlocksGame extends FlameGame {
   @override
   void render(Canvas canvas) {
     super.render(canvas);
-    DualBlocksRenderer.render(canvas: canvas, layout: layout, score: score);
+    DualBlocksRenderer.render(
+      canvas: canvas,
+      layout: layout,
+      score: score,
+      board: board,
+    );
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../config/game_constants.dart';
+import '../models/cell_state.dart';
 import '../models/game_layout.dart';
 
 class DualBlocksRenderer {
@@ -10,13 +11,18 @@ class DualBlocksRenderer {
     ..strokeWidth = 1;
   static final Paint _trayPaint = Paint()..color = GameConstants.trayBackground;
   static final Paint _scorePaint = Paint()..color = GameConstants.scoreBackground;
+  static final Paint _cellPaint = Paint()
+    ..color = Colors.blue; // 테스트용
+  
 
   static void render({
     required Canvas canvas,
     required GameLayout layout,
     required int score,
+    required List<List<CellState>> board,
   }) {
     _drawBoard(canvas, layout);
+    _drawCells(canvas, layout, board);
     _drawScore(canvas, layout, score);
     _drawGrid(canvas, layout);
     _drawBottomTray(canvas, layout);
@@ -30,6 +36,26 @@ class DualBlocksRenderer {
       ),
       _boardPaint,
     );
+  }
+  static void _drawCells(
+  Canvas canvas,
+  GameLayout layout,
+  List<List<CellState>> board,
+  ) {
+    for (int row = 0; row < GameConstants.boardSize; row++) {
+      for (int col = 0; col < GameConstants.boardSize; col++) {
+        if (board[row][col] == CellState.filled) {
+          final rect = Rect.fromLTWH(
+            layout.boardRect.left + col * layout.cellSize,
+            layout.boardRect.top + row * layout.cellSize,
+            layout.cellSize,
+            layout.cellSize,
+          );
+
+          canvas.drawRect(rect, _cellPaint);
+        }
+      }
+    }
   }
 
   static void _drawScore(Canvas canvas, GameLayout layout, int score) {

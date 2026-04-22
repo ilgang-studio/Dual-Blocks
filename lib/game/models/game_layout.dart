@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-
 import '../config/game_constants.dart';
 
 class GameLayout {
