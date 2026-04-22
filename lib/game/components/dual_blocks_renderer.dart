@@ -18,6 +18,10 @@ class DualBlocksRenderer {
   static final Paint _slotSelectedPaint = Paint()
     ..color = GameConstants.traySlotSelected.withValues(alpha: 0.35);
   static final Paint _shapePreviewPaint = Paint()..color = const Color(0xFFF59E0B);
+  static final Paint _dragOkPaint = Paint()
+    ..color = const Color(0xFF34D399).withValues(alpha: 0.65);
+  static final Paint _dragBlockedPaint = Paint()
+    ..color = const Color(0xFFF87171).withValues(alpha: 0.65);
   
 
   static void render({
@@ -27,9 +31,19 @@ class DualBlocksRenderer {
     required List<List<CellState>> board,
     required List<BlockShape?> trayBlocks,
     required int? selectedTrayIndex,
+    required BlockShape? dragShape,
+    required Offset? dragScreenPosition,
+    required bool dragCanPlace,
   }) {
     _drawBoard(canvas, layout);
     _drawCells(canvas, layout, board);
+    _drawDragPreview(
+      canvas: canvas,
+      layout: layout,
+      dragShape: dragShape,
+      dragScreenPosition: dragScreenPosition,
+      dragCanPlace: dragCanPlace,
+    );
     _drawScore(canvas, layout, score);
     _drawGrid(canvas, layout);
     _drawBottomTray(canvas, layout);
@@ -193,6 +207,37 @@ class DualBlocksRenderer {
         ),
         _shapePreviewPaint,
       );
+    }
+  }
+
+  static void _drawDragPreview({
+    required Canvas canvas,
+    required GameLayout layout,
+    required BlockShape? dragShape,
+    required Offset? dragScreenPosition,
+    required bool dragCanPlace,
+  }) {
+    if (dragShape == null || dragScreenPosition == null) return;
+    final boardPoint = layout.screenToBoard(dragScreenPosition);
+    if (boardPoint == null) return;
+
+    final paint = dragCanPlace ? _dragOkPaint : _dragBlockedPaint;
+    for (final cell in dragShape.cells) {
+      final col = boardPoint.x + cell.x;
+      final row = boardPoint.y + cell.y;
+      if (row < 0 ||
+          row >= GameConstants.boardSize ||
+          col < 0 ||
+          col >= GameConstants.boardSize) {
+        continue;
+      }
+      final rect = Rect.fromLTWH(
+        layout.boardRect.left + col * layout.cellSize,
+        layout.boardRect.top + row * layout.cellSize,
+        layout.cellSize,
+        layout.cellSize,
+      );
+      canvas.drawRect(rect, paint);
     }
   }
 }

@@ -11,11 +11,14 @@ import 'models/game_layout.dart';
 import 'systems/layout_system.dart';
 import 'systems/placement_system.dart';
 
-class DualBlocksGame extends FlameGame with TapCallbacks {
+class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   GameLayout? layout;
   int score = 0;
   List<BlockShape?> trayBlocks = [];
   int? selectedTrayIndex;
+  bool _isDraggingBlock = false;
+  BlockShape? _draggingShape;
+  Offset? _dragScreenPosition;
 
   final List<List<CellState>> board = List.generate(
     GameConstants.boardSize,
@@ -64,6 +67,22 @@ class DualBlocksGame extends FlameGame with TapCallbacks {
     final row = boardPoint.y;
     if (!canPlace(row, col)) return;
     placeBlock(row, col);
+  }
+
+  bool _tryPlaceFromDrag() {
+    final draggingShape = _draggingShape;
+    final screenPosition = _dragScreenPosition;
+    if (!_isDraggingBlock || draggingShape == null || screenPosition == null) {
+      return false;
+    }
+
+    final boardPoint = screenToBoard(screenPosition);
+    if (boardPoint == null) return false;
+
+    final col = boardPoint.x;
+    final row = boardPoint.y;
+    if (!canPlace(row, col)) return false;
+    return placeBlock(row, col);
   }
 
   bool trySelectTrayFromScreen(Offset screenPosition) {
@@ -129,8 +148,53 @@ class DualBlocksGame extends FlameGame with TapCallbacks {
 
     final selected = trySelectTrayFromScreen(screenPosition);
     if (selected) return;
+  }
 
-    tryPlaceFromScreen(screenPosition);
+  @override
+  void onDragStart(DragStartEvent event) {
+    super.onDragStart(event);
+
+    final screenPosition = Offset(
+      event.localPosition.x,
+      event.localPosition.y,
+    );
+
+    final selected = trySelectTrayFromScreen(screenPosition);
+    if (!selected) return;
+
+    _isDraggingBlock = true;
+    _draggingShape = _selectedShape;
+    _dragScreenPosition = screenPosition;
+  }
+
+  @override
+  void onDragUpdate(DragUpdateEvent event) {
+    super.onDragUpdate(event);
+    if (!_isDraggingBlock) return;
+
+    _dragScreenPosition = Offset(
+      event.canvasEndPosition.x,
+      event.canvasEndPosition.y,
+    );
+  }
+
+  @override
+  void onDragEnd(DragEndEvent event) {
+    super.onDragEnd(event);
+    _tryPlaceFromDrag();
+    _clearDragState();
+  }
+
+  @override
+  void onDragCancel(DragCancelEvent event) {
+    super.onDragCancel(event);
+    _clearDragState();
+  }
+
+  void _clearDragState() {
+    _isDraggingBlock = false;
+    _draggingShape = null;
+    _dragScreenPosition = null;
   }
 
   @override
@@ -147,6 +211,23 @@ class DualBlocksGame extends FlameGame with TapCallbacks {
       board: board,
       trayBlocks: trayBlocks,
       selectedTrayIndex: selectedTrayIndex,
+      dragShape: _draggingShape,
+      dragScreenPosition: _dragScreenPosition,
+      dragCanPlace: _dragCanPlace,
     );
+  }
+
+  math.Point<int>? get _dragBoardPoint {
+    final screenPosition = _dragScreenPosition;
+    if (screenPosition == null) return null;
+    return screenToBoard(screenPosition);
+  }
+
+  bool get _dragCanPlace {
+    final dragBoardPoint = _dragBoardPoint;
+    if (dragBoardPoint == null) return false;
+    final row = dragBoardPoint.y;
+    final col = dragBoardPoint.x;
+    return canPlace(row, col);
   }
 }
