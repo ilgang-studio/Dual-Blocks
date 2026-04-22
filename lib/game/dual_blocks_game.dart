@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import 'components/dual_blocks_renderer.dart';
 import 'config/game_constants.dart';
+import 'models/block_shape.dart';
 import 'models/cell_state.dart';
 import 'models/game_layout.dart';
 import 'systems/layout_system.dart';
@@ -13,6 +14,8 @@ import 'systems/placement_system.dart';
 class DualBlocksGame extends FlameGame with TapCallbacks {
   GameLayout? layout;
   int score = 0;
+  List<BlockShape?> trayBlocks = [];
+  int? selectedTrayIndex;
 
   final List<List<CellState>> board = List.generate(
     GameConstants.boardSize,
@@ -57,12 +60,18 @@ class DualBlocksGame extends FlameGame with TapCallbacks {
   Future<void> onLoad() async {
     await super.onLoad();
     layout = LayoutSystem.calculate(size);
+    _refillTray();
   }
 
   @override
   void onGameResize(Vector2 size) {
     super.onGameResize(size);
     layout = LayoutSystem.calculate(size);
+  }
+
+  void _refillTray() {
+    trayBlocks = List<BlockShape?>.from(BlockCatalog.starterSet);
+    selectedTrayIndex = trayBlocks.isNotEmpty ? 0 : null;
   }
 
   @override
