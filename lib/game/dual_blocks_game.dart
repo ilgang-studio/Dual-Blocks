@@ -56,6 +56,19 @@ class DualBlocksGame extends FlameGame with TapCallbacks {
     placeBlock(row, col);
   }
 
+  bool trySelectTrayFromScreen(Offset screenPosition) {
+    final currentLayout = layout;
+    if (currentLayout == null) return false;
+
+    final index = currentLayout.screenToTrayIndex(screenPosition);
+    if (index == null) return false;
+    if (index >= trayBlocks.length) return false;
+    if (trayBlocks[index] == null) return false;
+
+    selectedTrayIndex = index;
+    return true;
+  }
+
   @override
   Future<void> onLoad() async {
     await super.onLoad();
@@ -83,6 +96,9 @@ class DualBlocksGame extends FlameGame with TapCallbacks {
       event.localPosition.y,
     );
 
+    final selected = trySelectTrayFromScreen(screenPosition);
+    if (selected) return;
+
     tryPlaceFromScreen(screenPosition);
   }
 
@@ -98,6 +114,8 @@ class DualBlocksGame extends FlameGame with TapCallbacks {
       layout: currentLayout,
       score: score,
       board: board,
+      trayBlocks: trayBlocks,
+      selectedTrayIndex: selectedTrayIndex,
     );
   }
 }

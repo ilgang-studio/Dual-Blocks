@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../config/game_constants.dart';
+import '../models/block_shape.dart';
 import '../models/cell_state.dart';
 import '../models/game_layout.dart';
 
@@ -13,6 +14,10 @@ class DualBlocksRenderer {
   static final Paint _scorePaint = Paint()..color = GameConstants.scoreBackground;
   static final Paint _cellPaint = Paint()
     ..color = Colors.blue; // 테스트용
+  static final Paint _slotPaint = Paint()..color = GameConstants.traySlotBackground;
+  static final Paint _slotSelectedPaint = Paint()
+    ..color = GameConstants.traySlotSelected.withValues(alpha: 0.35);
+  static final Paint _shapePreviewPaint = Paint()..color = const Color(0xFFF59E0B);
   
 
   static void render({
@@ -20,12 +25,20 @@ class DualBlocksRenderer {
     required GameLayout layout,
     required int score,
     required List<List<CellState>> board,
+    required List<BlockShape?> trayBlocks,
+    required int? selectedTrayIndex,
   }) {
     _drawBoard(canvas, layout);
     _drawCells(canvas, layout, board);
     _drawScore(canvas, layout, score);
     _drawGrid(canvas, layout);
     _drawBottomTray(canvas, layout);
+    _drawTraySlots(
+      canvas,
+      layout,
+      trayBlocks,
+      selectedTrayIndex,
+    );
   }
 
   static void _drawBoard(Canvas canvas, GameLayout layout) {
@@ -116,5 +129,70 @@ class DualBlocksRenderer {
       ),
       _trayPaint,
     );
+  }
+
+  static void _drawTraySlots(
+    Canvas canvas,
+    GameLayout layout,
+    List<BlockShape?> trayBlocks,
+    int? selectedTrayIndex,
+  ) {
+    final slotRects = layout.traySlotRects();
+    for (var i = 0; i < slotRects.length; i++) {
+      final slotRect = slotRects[i];
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(slotRect, const Radius.circular(10)),
+        _slotPaint,
+      );
+      if (selectedTrayIndex == i) {
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(slotRect, const Radius.circular(10)),
+          _slotSelectedPaint,
+        );
+      }
+
+      final shape = i < trayBlocks.length ? trayBlocks[i] : null;
+      if (shape != null) {
+        _drawShapePreview(canvas, slotRect, shape);
+      }
+    }
+  }
+
+  static void _drawShapePreview(
+    Canvas canvas,
+    Rect slotRect,
+    BlockShape shape,
+  ) {
+    const previewCell = 14.0;
+    final points = shape.cells;
+
+    var minX = points.first.x;
+    var maxX = points.first.x;
+    var minY = points.first.y;
+    var maxY = points.first.y;
+
+    for (final p in points) {
+      if (p.x < minX) minX = p.x;
+      if (p.x > maxX) maxX = p.x;
+      if (p.y < minY) minY = p.y;
+      if (p.y > maxY) maxY = p.y;
+    }
+
+    final width = ((maxX - minX) + 1) * previewCell;
+    final height = ((maxY - minY) + 1) * previewCell;
+    final originX = slotRect.center.dx - (width / 2);
+    final originY = slotRect.center.dy - (height / 2);
+
+    for (final point in points) {
+      final left = originX + ((point.x - minX) * previewCell);
+      final top = originY + ((point.y - minY) * previewCell);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(left, top, previewCell - 2, previewCell - 2),
+          const Radius.circular(3),
+        ),
+        _shapePreviewPaint,
+      );
+    }
   }
 }

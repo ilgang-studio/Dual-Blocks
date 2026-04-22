@@ -31,4 +31,27 @@ class GameLayout {
     // Keep Cartesian semantics: x = column, y = row.
     return math.Point<int>(col, row);
   }
+
+  int? screenToTrayIndex(Offset point) {
+    final slots = traySlotRects();
+    for (var i = 0; i < slots.length; i++) {
+      if (slots[i].contains(point)) return i;
+    }
+    return null;
+  }
+
+  List<Rect> traySlotRects() {
+    final totalGap = GameConstants.traySlotGap * (GameConstants.traySlotCount - 1);
+    final innerWidth = bottomTrayRect.width - (GameConstants.trayInnerPadding * 2);
+    final slotSize = (innerWidth - totalGap) / GameConstants.traySlotCount;
+    final top = bottomTrayRect.top +
+        ((bottomTrayRect.height - slotSize) / 2);
+
+    return List<Rect>.generate(GameConstants.traySlotCount, (index) {
+      final left = bottomTrayRect.left +
+          GameConstants.trayInnerPadding +
+          (index * (slotSize + GameConstants.traySlotGap));
+      return Rect.fromLTWH(left, top, slotSize, slotSize);
+    });
+  }
 }

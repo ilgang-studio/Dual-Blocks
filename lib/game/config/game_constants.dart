@@ -11,9 +11,14 @@ class GameConstants {
   static const double scoreGapFromBoard = 70;
   static const double cornerRadius = 12;
   static const double outerBottomPadding = 16;
+  static const int traySlotCount = 3;
+  static const double trayInnerPadding = 12;
+  static const double traySlotGap = 12;
 
   static const Color boardBackground = Color(0xFF1F2937);
   static const Color gridLine = Color(0xFF374151);
   static const Color trayBackground = Color(0xFF111827);
   static const Color scoreBackground = Color(0xFF111827);
+  static const Color traySlotBackground = Color(0xFF1F2937);
+  static const Color traySlotSelected = Color(0xFF60A5FA);
 }
