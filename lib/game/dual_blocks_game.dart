@@ -8,6 +8,7 @@ import 'config/game_constants.dart';
 import 'models/cell_state.dart';
 import 'models/game_layout.dart';
 import 'systems/layout_system.dart';
+import 'systems/placement_system.dart';
 
 class DualBlocksGame extends FlameGame with TapCallbacks {
   GameLayout? layout;
@@ -18,16 +19,22 @@ class DualBlocksGame extends FlameGame with TapCallbacks {
     (_) => List.generate(GameConstants.boardSize, (_) => CellState.empty),
   );
 
-  bool _isInBounds(int row, int col) {
-    return row >= 0 &&
-        row < GameConstants.boardSize &&
-        col >= 0 &&
-        col < GameConstants.boardSize;
+  bool canPlace(int row, int col) {
+    return PlacementSystem.canPlace(
+      board: board,
+      row: row,
+      col: col,
+    );
   }
 
-  void debugFillCell(int row, int col) {
-    if (!_isInBounds(row, col)) return;
-    board[row][col] = CellState.filled;
+  bool placeBlock(int row, int col) {
+    final placed = PlacementSystem.placeBlock(
+      board: board,
+      row: row,
+      col: col,
+    );
+    if (placed) score += 1;
+    return placed;
   }
 
   math.Point<int>? screenToBoard(Offset p) {
@@ -36,14 +43,14 @@ class DualBlocksGame extends FlameGame with TapCallbacks {
     return currentLayout.screenToBoard(p);
   }
 
-  void debugFillFromScreen(Offset screenPosition) {
+  void tryPlaceFromScreen(Offset screenPosition) {
     final boardPoint = screenToBoard(screenPosition);
     if (boardPoint == null) return;
 
     final col = boardPoint.x;
     final row = boardPoint.y;
-
-    debugFillCell(row, col);
+    if (!canPlace(row, col)) return;
+    placeBlock(row, col);
   }
 
   @override
@@ -67,7 +74,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks {
       event.localPosition.y,
     );
 
-    debugFillFromScreen(screenPosition);
+    tryPlaceFromScreen(screenPosition);
   }
 
   @override
