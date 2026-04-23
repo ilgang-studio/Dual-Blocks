@@ -77,9 +77,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     if (_pendingClearResult != null) return false;
     if (_pendingFateRemovalCells.isNotEmpty) return false;
     if (_isSelectedDestructionBlock) {
-      if (row < 0 || row >= GameConstants.boardSize) return false;
-      if (col < 0 || col >= GameConstants.boardSize) return false;
-      return board[row][col].isOccupied;
+      return _canApplyDestructionShape(row, col);
     }
     final selectedShape = _selectedShape;
     if (selectedShape == null) return false;
@@ -95,7 +93,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     if (isGameOver) return false;
     if (_isSelectedDestructionBlock) {
       if (!canPlace(row, col)) return false;
-      board[row][col] = CellState.empty;
+      _applyDestructionShape(row, col);
       _consumeSelectedTrayBlock();
       return true;
     }
@@ -725,6 +723,45 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   bool get _isSelectedDestructionBlock {
     return _selectedFate == FateType.devil &&
         _selectedTrayDevilGift == DevilGiftType.destructionAid;
+  }
+
+  bool _canApplyDestructionShape(int anchorRow, int anchorCol) {
+    final selectedShape = _selectedShape;
+    if (selectedShape == null) return false;
+
+    var hasOccupiedTarget = false;
+    for (final cell in selectedShape.cells) {
+      final row = anchorRow + cell.y;
+      final col = anchorCol + cell.x;
+      if (row < 0 ||
+          row >= GameConstants.boardSize ||
+          col < 0 ||
+          col >= GameConstants.boardSize) {
+        return false;
+      }
+      if (board[row][col].isOccupied) {
+        hasOccupiedTarget = true;
+      }
+    }
+
+    return hasOccupiedTarget;
+  }
+
+  void _applyDestructionShape(int anchorRow, int anchorCol) {
+    final selectedShape = _selectedShape;
+    if (selectedShape == null) return;
+
+    for (final cell in selectedShape.cells) {
+      final row = anchorRow + cell.y;
+      final col = anchorCol + cell.x;
+      if (row < 0 ||
+          row >= GameConstants.boardSize ||
+          col < 0 ||
+          col >= GameConstants.boardSize) {
+        continue;
+      }
+      board[row][col] = CellState.empty;
+    }
   }
 
   void _updatePreviewClearState() {
