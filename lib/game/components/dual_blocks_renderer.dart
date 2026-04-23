@@ -51,7 +51,9 @@ class DualBlocksRenderer {
     required FateType? fateType,
     required String? fateReason,
     required bool showFateBanner,
-    required int angelCharge,
+    required int angelStack,
+    required int devilStack,
+    required int storedScore,
   }) {
     _drawBoard(canvas, layout);
     _drawCells(canvas, layout, board);
@@ -72,7 +74,13 @@ class DualBlocksRenderer {
     );
     _drawScore(canvas, layout, score);
     _drawTurn(canvas, layout, turn);
-    _drawAngelCharge(canvas, layout, angelCharge);
+    _drawStoredScore(canvas, layout, storedScore);
+    _drawFateSelectors(
+      canvas: canvas,
+      layout: layout,
+      angelStack: angelStack,
+      devilStack: devilStack,
+    );
     if (showFateBanner && fateType != null && fateReason != null) {
       _drawFateBanner(canvas, layout, fateType, fateReason);
     }
@@ -165,12 +173,12 @@ class DualBlocksRenderer {
     );
   }
 
-  static void _drawAngelCharge(Canvas canvas, GameLayout layout, int angelCharge) {
+  static void _drawStoredScore(Canvas canvas, GameLayout layout, int storedScore) {
     final chargePainter = TextPainter(
       text: TextSpan(
-        text: 'Bless: $angelCharge',
+        text: 'Stored: $storedScore',
         style: const TextStyle(
-          color: Color(0xFF86EFAC),
+          color: Color(0xFFFDE68A),
           fontSize: 12,
           fontWeight: FontWeight.w600,
         ),
@@ -185,6 +193,75 @@ class DualBlocksRenderer {
         layout.scoreRect.top + 8,
       ),
     );
+  }
+
+  static void _drawFateSelectors({
+    required Canvas canvas,
+    required GameLayout layout,
+    required int angelStack,
+    required int devilStack,
+  }) {
+    final angelRect = layout.angelChoiceRect();
+    final devilRect = layout.devilChoiceRect();
+
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(angelRect, const Radius.circular(8)),
+      _angelBadgePaint,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(devilRect, const Radius.circular(8)),
+      _devilBadgePaint,
+    );
+
+    _drawFateSelectorLabel(
+      canvas: canvas,
+      rect: angelRect,
+      label: 'Angel',
+      color: const Color(0xFFD1FAE5),
+      stack: angelStack,
+    );
+    _drawFateSelectorLabel(
+      canvas: canvas,
+      rect: devilRect,
+      label: 'Devil',
+      color: const Color(0xFFFEE2E2),
+      stack: devilStack,
+    );
+  }
+
+  static void _drawFateSelectorLabel({
+    required Canvas canvas,
+    required Rect rect,
+    required String label,
+    required Color color,
+    required int stack,
+  }) {
+    final dots = _stackDots(stack);
+    final textPainter = TextPainter(
+      text: TextSpan(
+        text: '$label $dots',
+        style: TextStyle(
+          color: color,
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+      maxLines: 1,
+    )..layout(maxWidth: rect.width - 6);
+
+    textPainter.paint(
+      canvas,
+      Offset(
+        rect.left + 4,
+        rect.top + 3,
+      ),
+    );
+  }
+
+  static String _stackDots(int stack) {
+    final safe = stack.clamp(0, 3);
+    return '${'●' * safe}${'○' * (3 - safe)}';
   }
 
   static void _drawScorePanelBackground(Canvas canvas, GameLayout layout) {

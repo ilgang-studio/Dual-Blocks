@@ -435,7 +435,9 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
       fateType: _activeFateType,
       fateReason: _activeFateReason,
       showFateBanner: _fateBannerLeft > 0,
-      angelCharge: _angelStack,
+      angelStack: _angelStack,
+      devilStack: _devilStack,
+      storedScore: _storedScore,
     );
   }
 
