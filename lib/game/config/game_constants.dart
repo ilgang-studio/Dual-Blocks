@@ -9,8 +9,8 @@ class GameConstants {
   static const double topPadding = 100;
   static const double trayHeight = 120;
   static const double sectionGap = 16;
-  static const double scoreHeight = 50;
-  static const double scoreGapFromBoard = 70;
+  static const double scoreHeight = 72;
+  static const double scoreGapFromBoard = 86;
   static const double cornerRadius = 12;
   static const double outerBottomPadding = 16;
   static const int traySlotCount = 3;
@@ -33,7 +33,7 @@ class GameConstants {
   static const int lineClearPointPerCell = 2;
   static const int lineClearBasePoint = 10;
   static const double lineClearMultiLineBonusMultiplier = 2.0;
-  static const double lineClearHighlightSeconds = 0.12;
+  static const double lineClearHighlightSeconds = 0.18;
   static const double fateRemovalEffectSeconds = 0.18;
   static const double scorePopupSeconds = 0.45;
   static const double placementSuccessSeconds = 0.14;

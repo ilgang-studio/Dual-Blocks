@@ -16,8 +16,17 @@ class DualBlocksRenderer {
     ..color = GameConstants.gridLine
     ..strokeWidth = 1;
   static final Paint _trayPaint = Paint()..color = GameConstants.trayBackground;
-  static final Paint _scorePaint = Paint()
-    ..color = GameConstants.scoreBackground;
+  static final Paint _headerBorderPaint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 1.2
+    ..color = const Color(0xFFE5E7EB);
+  static final Paint _headerAngelRingPaint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 2;
+  static final Paint _headerDevilRingPaint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 2;
+  static final Paint _headerDotFillPaint = Paint()..style = PaintingStyle.fill;
   static final Paint _cellFallbackPaint = Paint()
     ..color = GameConstants.normalBlockColor;
   static final Paint _angelCellPaint = Paint()
@@ -48,6 +57,11 @@ class DualBlocksRenderer {
     ..strokeWidth = 2.2;
   static final Paint _lineClearPaint = Paint()
     ..color = GameConstants.lineClearHighlight.withValues(alpha: 0.38);
+  static final Paint _lineClearCorePaint = Paint()..style = PaintingStyle.fill;
+  static final Paint _lineClearRingPaint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 1.8;
+  static final Paint _lineClearSparkPaint = Paint()..style = PaintingStyle.fill;
   static final Paint _previewLineGlowPaint = Paint()
     ..style = PaintingStyle.fill;
   static final Paint _previewLineBorderPaint = Paint()
@@ -106,6 +120,7 @@ class DualBlocksRenderer {
         layout: frame.layout,
         clearRows: frame.clearRows,
         clearCols: frame.clearCols,
+        effectTime: frame.effectTime,
       );
     }
     if (frame.fateRemovalCells.isNotEmpty &&
@@ -126,21 +141,22 @@ class DualBlocksRenderer {
       dragScreenPosition: frame.dragScreenPosition,
       dragCanPlace: frame.dragCanPlace,
     );
-    _drawScore(canvas, frame.layout, frame.score);
-    _drawTurn(canvas, frame.layout, frame.turn);
-    _drawStoredScore(canvas, frame.layout, frame.storedScore);
-    _drawCombo(canvas, frame.layout, frame.comboCount);
+    _drawHeader(
+      canvas: canvas,
+      layout: frame.layout,
+      score: frame.score,
+      turn: frame.turn,
+      storedScore: frame.storedScore,
+      comboCount: frame.comboCount,
+      angelStack: frame.angelStack,
+      devilStack: frame.devilStack,
+      effectTime: frame.effectTime,
+    );
     _drawScorePopup(
       canvas: canvas,
       layout: frame.layout,
       scoreValue: frame.scorePopupValue,
       progress: frame.scorePopupProgress,
-    );
-    _drawFateSelectors(
-      canvas: canvas,
-      layout: frame.layout,
-      angelStack: frame.angelStack,
-      devilStack: frame.devilStack,
     );
     if (frame.showFateBanner &&
         frame.fateType != null &&
@@ -215,16 +231,62 @@ class DualBlocksRenderer {
     }
   }
 
-  static void _drawScore(Canvas canvas, GameLayout layout, int score) {
+  static void _drawHeader({
+    required Canvas canvas,
+    required GameLayout layout,
+    required int score,
+    required int turn,
+    required int storedScore,
+    required int comboCount,
+    required int angelStack,
+    required int devilStack,
+    required double effectTime,
+  }) {
     _drawScorePanelBackground(canvas, layout);
+    _drawHeaderStackDots(
+      canvas: canvas,
+      layout: layout,
+      stack: angelStack,
+      isAngel: true,
+      effectTime: effectTime,
+    );
+    _drawHeaderStackDots(
+      canvas: canvas,
+      layout: layout,
+      stack: devilStack,
+      isAngel: false,
+      effectTime: effectTime,
+    );
+
+    final neonPulse = (math.sin(effectTime * 8.5) + 1) / 2;
+    final isComboActive = comboCount > 0;
+    final scoreColor = isComboActive
+        ? Color.lerp(
+            const Color(0xFF111827),
+            const Color(0xFF0EA5E9),
+            neonPulse * 0.42,
+          )!
+        : const Color(0xFF111827);
+    final glowAlpha = isComboActive ? 0.45 + (neonPulse * 0.45) : 0.0;
 
     final scorePainter = TextPainter(
       text: TextSpan(
-        text: 'Score: $score',
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 17,
-          fontWeight: FontWeight.bold,
+        text: '$score',
+        style: TextStyle(
+          color: scoreColor,
+          fontSize: 40,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 1.0,
+          shadows: [
+            Shadow(
+              color: const Color(0xFF22D3EE).withValues(alpha: glowAlpha),
+              blurRadius: 10 + (neonPulse * 7),
+            ),
+            Shadow(
+              color: const Color(0xFFFFFFFF).withValues(alpha: glowAlpha * 0.5),
+              blurRadius: 4 + (neonPulse * 4),
+            ),
+          ],
         ),
       ),
       textDirection: TextDirection.ltr,
@@ -232,149 +294,117 @@ class DualBlocksRenderer {
 
     scorePainter.paint(
       canvas,
-      Offset(layout.scoreRect.left + 14, layout.scoreRect.top + 8),
-    );
-  }
-
-  static void _drawTurn(Canvas canvas, GameLayout layout, int turn) {
-    final turnPainter = TextPainter(
-      text: TextSpan(
-        text: 'Turn: $turn',
-        style: const TextStyle(
-          color: Color(0xFFBFDBFE),
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
-
-    turnPainter.paint(
-      canvas,
-      Offset(layout.scoreRect.left + 14, layout.scoreRect.top + 28),
-    );
-  }
-
-  static void _drawStoredScore(
-    Canvas canvas,
-    GameLayout layout,
-    int storedScore,
-  ) {
-    final chargePainter = TextPainter(
-      text: TextSpan(
-        text: 'Stored: $storedScore',
-        style: const TextStyle(
-          color: Color(0xFFFDE68A),
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
-
-    chargePainter.paint(
-      canvas,
       Offset(
-        layout.scoreRect.right - chargePainter.width - 12,
-        layout.scoreRect.top + 8,
+        layout.scoreRect.center.dx - (scorePainter.width / 2),
+        layout.scoreRect.top + 12,
       ),
     );
-  }
 
-  static void _drawCombo(Canvas canvas, GameLayout layout, int comboCount) {
-    final isActive = comboCount > 0;
-    final comboPainter = TextPainter(
+    final metaPainter = TextPainter(
       text: TextSpan(
-        text: isActive ? 'Combo x$comboCount' : 'Combo x0',
-        style: TextStyle(
-          color: isActive ? const Color(0xFFFDE68A) : const Color(0xFF94A3B8),
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
-
-    comboPainter.paint(
-      canvas,
-      Offset(
-        layout.scoreRect.right - comboPainter.width - 12,
-        layout.scoreRect.top + 26,
-      ),
-    );
-  }
-
-  static void _drawFateSelectors({
-    required Canvas canvas,
-    required GameLayout layout,
-    required int angelStack,
-    required int devilStack,
-  }) {
-    final angelRect = layout.angelChoiceRect();
-    final devilRect = layout.devilChoiceRect();
-
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(angelRect, const Radius.circular(8)),
-      _angelBadgePaint,
-    );
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(devilRect, const Radius.circular(8)),
-      _devilBadgePaint,
-    );
-
-    _drawFateSelectorLabel(
-      canvas: canvas,
-      rect: angelRect,
-      label: 'Angel',
-      color: const Color(0xFFD1FAE5),
-      stack: angelStack,
-    );
-    _drawFateSelectorLabel(
-      canvas: canvas,
-      rect: devilRect,
-      label: 'Devil',
-      color: const Color(0xFFFEE2E2),
-      stack: devilStack,
-    );
-  }
-
-  static void _drawFateSelectorLabel({
-    required Canvas canvas,
-    required Rect rect,
-    required String label,
-    required Color color,
-    required int stack,
-  }) {
-    final dots = _stackDots(stack);
-    final textPainter = TextPainter(
-      text: TextSpan(
-        text: '$label $dots',
-        style: TextStyle(
-          color: color,
+        text: 'TURN $turn   |   STORED $storedScore',
+        style: const TextStyle(
+          color: Color(0xFF64748B),
           fontSize: 10,
           fontWeight: FontWeight.w700,
+          letterSpacing: 0.8,
         ),
       ),
       textDirection: TextDirection.ltr,
-      maxLines: 1,
-    )..layout(maxWidth: rect.width - 6);
+    )..layout();
 
-    textPainter.paint(canvas, Offset(rect.left + 4, rect.top + 3));
+    metaPainter.paint(
+      canvas,
+      Offset(
+        layout.scoreRect.center.dx - (metaPainter.width / 2),
+        layout.scoreRect.bottom - metaPainter.height - 6,
+      ),
+    );
+
+    final comboPainter = TextPainter(
+      text: TextSpan(
+        text: isComboActive ? 'COMBO x$comboCount' : '',
+        style: TextStyle(
+          color: const Color(
+            0xFF06B6D4,
+          ).withValues(alpha: 0.6 + (neonPulse * 0.35)),
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 1.2,
+          shadows: [
+            Shadow(
+              color: const Color(0xFF22D3EE).withValues(alpha: 0.4),
+              blurRadius: 8,
+            ),
+          ],
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+
+    if (isComboActive) {
+      comboPainter.paint(
+        canvas,
+        Offset(
+          layout.scoreRect.center.dx - (comboPainter.width / 2),
+          layout.scoreRect.top + 4,
+        ),
+      );
+    }
   }
 
-  static String _stackDots(int stack) {
-    final safe = stack.clamp(0, 3);
-    return '${'●' * safe}${'○' * (3 - safe)}';
+  static void _drawHeaderStackDots({
+    required Canvas canvas,
+    required GameLayout layout,
+    required int stack,
+    required bool isAngel,
+    required double effectTime,
+  }) {
+    final safeStack = stack.clamp(0, 3);
+    final x = isAngel
+        ? layout.scoreRect.left + 20
+        : layout.scoreRect.right - 20;
+    final spacing = layout.scoreRect.height / 3.4;
+    final baseY = layout.scoreRect.center.dy - spacing;
+    final ringColor = isAngel
+        ? const Color(0xFF67E8F9)
+        : const Color(0xFFB91C1C);
+    final fillColor = isAngel
+        ? const Color(0xFF22D3EE)
+        : const Color(0xFFEF4444);
+    final pulse = (math.sin(effectTime * 7.0) + 1) / 2;
+    final radius = 7.0;
+
+    final ringPaint = isAngel ? _headerAngelRingPaint : _headerDevilRingPaint;
+    ringPaint.color = ringColor.withValues(alpha: 0.95);
+
+    for (var i = 0; i < 3; i++) {
+      final center = Offset(x, baseY + (i * spacing));
+      canvas.drawCircle(center, radius, ringPaint);
+      if (i < safeStack) {
+        _headerDotFillPaint.color = fillColor.withValues(
+          alpha: 0.45 + (pulse * 0.4),
+        );
+        canvas.drawCircle(center, radius - 2, _headerDotFillPaint);
+      }
+    }
   }
 
   static void _drawScorePanelBackground(Canvas canvas, GameLayout layout) {
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        layout.scoreRect,
-        const Radius.circular(GameConstants.cornerRadius),
-      ),
-      _scorePaint,
+    final rect = layout.scoreRect;
+    final fillPaint = Paint()
+      ..shader = const LinearGradient(
+        colors: [Color(0xFFF8FAFC), Color(0xFFE2E8F0)],
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+      ).createShader(rect);
+    final panel = RRect.fromRectAndRadius(
+      rect,
+      const Radius.circular(GameConstants.cornerRadius),
     );
+
+    canvas.drawRRect(panel, fillPaint);
+    canvas.drawRRect(panel, _headerBorderPaint);
   }
 
   static void _drawGrid(Canvas canvas, GameLayout layout) {
@@ -769,7 +799,22 @@ class DualBlocksRenderer {
     required GameLayout layout,
     required Set<int> clearRows,
     required Set<int> clearCols,
+    required double effectTime,
   }) {
+    final pulse = (math.sin(effectTime * 24.0) + 1) / 2;
+    _lineClearPaint.color = const Color(
+      0xFF67E8F9,
+    ).withValues(alpha: 0.26 + (pulse * 0.32));
+    _lineClearCorePaint.color = const Color(
+      0xFFFFFFFF,
+    ).withValues(alpha: 0.18 + (pulse * 0.34));
+    _lineClearRingPaint.color = const Color(
+      0xFF22D3EE,
+    ).withValues(alpha: 0.45 + (pulse * 0.5));
+    _lineClearSparkPaint.color = const Color(
+      0xFFFFFFFF,
+    ).withValues(alpha: 0.5 + (pulse * 0.45));
+
     for (final row in clearRows) {
       final rect = Rect.fromLTWH(
         layout.boardRect.left,
@@ -778,6 +823,18 @@ class DualBlocksRenderer {
         layout.cellSize,
       );
       canvas.drawRect(rect, _lineClearPaint);
+      canvas.drawRect(rect.deflate(2), _lineClearCorePaint);
+      canvas.drawRect(rect.deflate(1), _lineClearRingPaint);
+
+      final sparkY = rect.center.dy;
+      for (var i = 0; i < 8; i++) {
+        final sweep = ((effectTime * 420) + (i * 48)) % rect.width;
+        canvas.drawCircle(
+          Offset(rect.left + sweep, sparkY),
+          1.2 + (pulse * 1.2),
+          _lineClearSparkPaint,
+        );
+      }
     }
 
     for (final col in clearCols) {
@@ -788,6 +845,18 @@ class DualBlocksRenderer {
         layout.boardRect.height,
       );
       canvas.drawRect(rect, _lineClearPaint);
+      canvas.drawRect(rect.deflate(2), _lineClearCorePaint);
+      canvas.drawRect(rect.deflate(1), _lineClearRingPaint);
+
+      final sparkX = rect.center.dx;
+      for (var i = 0; i < 8; i++) {
+        final sweep = ((effectTime * 420) + (i * 48)) % rect.height;
+        canvas.drawCircle(
+          Offset(sparkX, rect.top + sweep),
+          1.2 + (pulse * 1.2),
+          _lineClearSparkPaint,
+        );
+      }
     }
   }
 

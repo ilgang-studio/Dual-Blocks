@@ -42,14 +42,16 @@ class GameLayout {
   }
 
   List<Rect> traySlotRects() {
-    final totalGap = GameConstants.traySlotGap * (GameConstants.traySlotCount - 1);
-    final innerWidth = bottomTrayRect.width - (GameConstants.trayInnerPadding * 2);
+    final totalGap =
+        GameConstants.traySlotGap * (GameConstants.traySlotCount - 1);
+    final innerWidth =
+        bottomTrayRect.width - (GameConstants.trayInnerPadding * 2);
     final slotSize = (innerWidth - totalGap) / GameConstants.traySlotCount;
-    final top = bottomTrayRect.top +
-        ((bottomTrayRect.height - slotSize) / 2);
+    final top = bottomTrayRect.top + ((bottomTrayRect.height - slotSize) / 2);
 
     return List<Rect>.generate(GameConstants.traySlotCount, (index) {
-      final left = bottomTrayRect.left +
+      final left =
+          bottomTrayRect.left +
           GameConstants.trayInnerPadding +
           (index * (slotSize + GameConstants.traySlotGap));
       return Rect.fromLTWH(left, top, slotSize, slotSize);
@@ -57,18 +59,18 @@ class GameLayout {
   }
 
   Rect angelChoiceRect() {
-    const width = 78.0;
-    const height = 18.0;
-    final left = scoreRect.right - (width * 2) - 16;
-    final top = scoreRect.top + 28;
+    const width = 44.0;
+    const height = 56.0;
+    final left = scoreRect.left + 6;
+    final top = scoreRect.center.dy - (height / 2);
     return Rect.fromLTWH(left, top, width, height);
   }
 
   Rect devilChoiceRect() {
-    const width = 78.0;
-    const height = 18.0;
-    final left = scoreRect.right - width - 8;
-    final top = scoreRect.top + 28;
+    const width = 44.0;
+    const height = 56.0;
+    final left = scoreRect.right - width - 6;
+    final top = scoreRect.center.dy - (height / 2);
     return Rect.fromLTWH(left, top, width, height);
   }
 
