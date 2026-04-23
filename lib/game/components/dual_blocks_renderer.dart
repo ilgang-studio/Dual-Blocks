@@ -90,6 +90,9 @@ class DualBlocksRenderer {
     required Set<int> clearRows,
     required Set<int> clearCols,
     required bool showClearHighlight,
+    required List<math.Point<int>> fateRemovalCells,
+    required FateType? fateRemovalType,
+    required double fateRemovalProgress,
     required FateType? fateType,
     required String? fateReason,
     required bool showFateBanner,
@@ -121,6 +124,17 @@ class DualBlocksRenderer {
         layout: layout,
         clearRows: clearRows,
         clearCols: clearCols,
+      );
+    }
+    if (fateRemovalCells.isNotEmpty &&
+        fateRemovalType != null &&
+        fateRemovalProgress > 0) {
+      _drawFateRemovalOverlay(
+        canvas: canvas,
+        layout: layout,
+        cells: fateRemovalCells,
+        fateType: fateRemovalType,
+        progress: fateRemovalProgress.clamp(0, 1).toDouble(),
       );
     }
     _drawDragPreview(
@@ -790,6 +804,51 @@ class DualBlocksRenderer {
         layout.boardRect.height,
       );
       canvas.drawRect(rect, _lineClearPaint);
+    }
+  }
+
+  static void _drawFateRemovalOverlay({
+    required Canvas canvas,
+    required GameLayout layout,
+    required List<math.Point<int>> cells,
+    required FateType fateType,
+    required double progress,
+  }) {
+    final pulse = 1 - progress;
+    final cellSide = layout.cellSize;
+    final isAngel = fateType == FateType.angel;
+    final coreColor = isAngel
+        ? const Color(0xFFE0F2FE)
+        : const Color(0xFF7F1D1D);
+    final ringColor = isAngel
+        ? const Color(0xFF93C5FD)
+        : const Color(0xFFEF4444);
+
+    final ringPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0 + (pulse * 2.0)
+      ..color = ringColor.withValues(alpha: 0.35 + pulse * 0.45);
+    final fillPaint = Paint()
+      ..style = PaintingStyle.fill
+      ..color = coreColor.withValues(alpha: 0.2 + pulse * 0.45);
+
+    for (final cell in cells) {
+      final col = cell.x;
+      final row = cell.y;
+      if (row < 0 ||
+          row >= GameConstants.boardSize ||
+          col < 0 ||
+          col >= GameConstants.boardSize) {
+        continue;
+      }
+      final rect = Rect.fromLTWH(
+        layout.boardRect.left + col * cellSide,
+        layout.boardRect.top + row * cellSide,
+        cellSide,
+        cellSide,
+      );
+      canvas.drawRect(rect, fillPaint);
+      canvas.drawRect(rect.deflate(1), ringPaint);
     }
   }
 

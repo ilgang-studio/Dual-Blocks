@@ -43,6 +43,9 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   int _scorePopupValue = 0;
   double _placeSuccessLeft = 0;
   double _placeFailLeft = 0;
+  final List<math.Point<int>> _pendingFateRemovalCells = [];
+  FateType? _pendingFateRemovalType;
+  double _fateRemovalLeft = 0;
   final math.Random _random = math.Random();
   int _angelStack = 0;
   int _devilStack = 0;
@@ -66,6 +69,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
 
   bool canPlace(int row, int col) {
     if (_pendingClearResult != null) return false;
+    if (_pendingFateRemovalCells.isNotEmpty) return false;
     final selectedShape = _selectedShape;
     if (selectedShape == null) return false;
     return PlacementSystem.canPlaceShape(
@@ -209,7 +213,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   }
 
   void triggerDevil() {
-    _pendingDevilGift =
+    final selectedGift =
         _selectedDevilGift ??
         (_random.nextBool()
             ? DevilGiftType.greedBestBlock
@@ -218,9 +222,16 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
 
     score = (score * (1 - GameConstants.devilScorePenaltyRatio)).toInt();
 
-    final summary = _pendingDevilGift == DevilGiftType.greedBestBlock
-        ? 'Greed: next hand gets best block'
-        : 'Destruction: next hand gets escape block';
+    String summary;
+    if (selectedGift == DevilGiftType.greedBestBlock) {
+      _pendingDevilGift = DevilGiftType.greedBestBlock;
+      summary = 'Greed: next hand gets best block';
+    } else {
+      _pendingDevilGift = null;
+      final removed = _queueDevilDestructionRemoval(2);
+      summary = 'Destruction: collapse $removed block(s)';
+    }
+
     _showFateBanner(FateType.devil, '$summary, -10% score');
     debugPrint('[Devil Triggered] $summary');
     _evaluateGameOver();
@@ -271,7 +282,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
       }
       if (occupiedCols.isEmpty) return 0;
       final col = occupiedCols[_random.nextInt(occupiedCols.length)];
-      board[row][col] = CellState.empty;
+      _queueFateRemoval([math.Point<int>(col, row)], FateType.angel);
       return 1;
     }
 
@@ -282,7 +293,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     }
     if (occupiedRows.isEmpty) return 0;
     final row = occupiedRows[_random.nextInt(occupiedRows.length)];
-    board[row][col] = CellState.empty;
+    _queueFateRemoval([math.Point<int>(col, row)], FateType.angel);
     return 1;
   }
 
@@ -294,6 +305,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
 
   void tryPlaceFromScreen(Offset screenPosition) {
     if (_pendingClearResult != null) return;
+    if (_pendingFateRemovalCells.isNotEmpty) return;
     final boardPoint = screenToBoard(screenPosition);
     if (boardPoint == null) return;
 
@@ -312,6 +324,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     if (!_isDraggingBlock || draggingShape == null || screenPosition == null) {
       return false;
     }
+    if (_pendingFateRemovalCells.isNotEmpty) return false;
 
     final boardPoint = screenToBoard(screenPosition);
     if (boardPoint == null) return false;
@@ -328,6 +341,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   bool trySelectTrayFromScreen(Offset screenPosition) {
     if (isGameOver) return false;
     if (_pendingClearResult != null) return false;
+    if (_pendingFateRemovalCells.isNotEmpty) return false;
     final currentLayout = layout;
     if (currentLayout == null) return false;
 
@@ -389,6 +403,9 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     _lastClearResult = const LineClearResult(fullRows: {}, fullCols: {});
     _lineHighlightLeft = 0;
     _pendingClearResult = null;
+    _pendingFateRemovalCells.clear();
+    _pendingFateRemovalType = null;
+    _fateRemovalLeft = 0;
     _scorePopupLeft = 0;
     _scorePopupValue = 0;
     _placeSuccessLeft = 0;
@@ -411,6 +428,10 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
 
   void _evaluateGameOver() {
     if (_pendingClearResult != null) {
+      isGameOver = false;
+      return;
+    }
+    if (_pendingFateRemovalCells.isNotEmpty) {
       isGameOver = false;
       return;
     }
@@ -587,6 +608,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     super.onDragStart(event);
     if (isGameOver) return;
     if (_pendingClearResult != null) return;
+    if (_pendingFateRemovalCells.isNotEmpty) return;
 
     final screenPosition = Offset(event.localPosition.x, event.localPosition.y);
     final selected = trySelectTrayFromScreen(screenPosition);
@@ -636,6 +658,13 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   void update(double dt) {
     super.update(dt);
     _effectTime += dt;
+    if (_pendingFateRemovalCells.isNotEmpty && _fateRemovalLeft > 0) {
+      _fateRemovalLeft -= dt;
+      if (_fateRemovalLeft <= 0) {
+        _resolvePendingFateRemoval();
+      }
+    }
+
     if (_pendingClearResult != null && _lineHighlightLeft > 0) {
       _lineHighlightLeft -= dt;
       if (_lineHighlightLeft <= 0) {
@@ -701,6 +730,10 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
       clearRows: _lastClearResult.fullRows,
       clearCols: _lastClearResult.fullCols,
       showClearHighlight: _lineHighlightLeft > 0,
+      fateRemovalCells: _pendingFateRemovalCells,
+      fateRemovalType: _pendingFateRemovalType,
+      fateRemovalProgress:
+          _fateRemovalLeft / GameConstants.fateRemovalEffectSeconds,
       fateType: _activeFateType,
       fateReason: _activeFateReason,
       showFateBanner: _fateBannerLeft > 0,
@@ -741,6 +774,34 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   int get devilStack => _devilStack;
   int get storedScore => _storedScore;
 
+  void _queueFateRemoval(List<math.Point<int>> cells, FateType type) {
+    if (cells.isEmpty) return;
+    _pendingFateRemovalCells
+      ..clear()
+      ..addAll(cells);
+    _pendingFateRemovalType = type;
+    _fateRemovalLeft = GameConstants.fateRemovalEffectSeconds;
+  }
+
+  int _queueDevilDestructionRemoval(int targetCount) {
+    final occupied = <math.Point<int>>[];
+    for (var row = 0; row < GameConstants.boardSize; row++) {
+      for (var col = 0; col < GameConstants.boardSize; col++) {
+        if (board[row][col].isOccupied) {
+          occupied.add(math.Point<int>(col, row));
+        }
+      }
+    }
+    if (occupied.isEmpty) return 0;
+    occupied.shuffle(_random);
+    final count = targetCount.clamp(1, occupied.length);
+    _queueFateRemoval(
+      occupied.take(count).toList(growable: false),
+      FateType.devil,
+    );
+    return count;
+  }
+
   void _resolvePendingLineClear() {
     final pending = _pendingClearResult;
     if (pending == null) return;
@@ -750,6 +811,25 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     _pendingClearResult = null;
     _lineHighlightLeft = 0;
     _lastClearResult = const LineClearResult(fullRows: {}, fullCols: {});
+    _evaluateGameOver();
+  }
+
+  void _resolvePendingFateRemoval() {
+    if (_pendingFateRemovalCells.isEmpty) return;
+    for (final point in _pendingFateRemovalCells) {
+      final col = point.x;
+      final row = point.y;
+      if (row < 0 ||
+          row >= GameConstants.boardSize ||
+          col < 0 ||
+          col >= GameConstants.boardSize) {
+        continue;
+      }
+      board[row][col] = CellState.empty;
+    }
+    _pendingFateRemovalCells.clear();
+    _pendingFateRemovalType = null;
+    _fateRemovalLeft = 0;
     _evaluateGameOver();
   }
 
