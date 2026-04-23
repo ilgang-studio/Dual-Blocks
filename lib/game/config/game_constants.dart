@@ -28,6 +28,8 @@ class GameConstants {
   static const Color devilEffect = Color(0xFFF87171);
 
   static const int lineClearPointPerCell = 2;
+  static const int lineClearBasePoint = 10;
+  static const double lineClearMultiLineBonusMultiplier = 2.0;
   static const double lineClearHighlightSeconds = 0.22;
   static const int fateTriggerStack = 3;
   static const double angelStoreRatio = 0.5;

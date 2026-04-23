@@ -1,13 +1,9 @@
-enum FateType {
-  angel,
-  devil,
-}
+enum FateType { angel, devil }
+
+enum DevilGiftType { greedBestBlock, destructionAid }
 
 class FateDecision {
-  const FateDecision({
-    required this.type,
-    required this.reason,
-  });
+  const FateDecision({required this.type, required this.reason});
 
   final FateType type;
   final String reason;

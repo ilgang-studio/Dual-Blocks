@@ -26,6 +26,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   bool isGameOver = false;
   List<BlockShape?> trayBlocks = [];
   List<FateType?> trayFates = [];
+  List<DevilGiftType?> trayDevilGifts = [];
   int? selectedTrayIndex;
   bool isAlignmentTurn = false;
   bool _alignmentChoicePending = false;
@@ -41,9 +42,12 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   int _angelStack = 0;
   int _devilStack = 0;
   int _storedScore = 0;
+  int _comboCount = 0;
   double _nextClearScoreMultiplier = 1.0;
   bool _angelEasyHandBoostPending = false;
-  _DevilGiftType? _pendingDevilGift;
+  DevilGiftType? _pendingDevilGift;
+  DevilGiftType? _selectedDevilGift;
+  double _effectTime = 0;
   FateType? _selectedFate;
   FateType? _activeFateType;
   String? _activeFateReason;
@@ -88,7 +92,10 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
 
   int _applyLineClear() {
     final result = LineClearSystem.findFilledLines(board);
-    if (!result.hasAny) return 0;
+    if (!result.hasAny) {
+      _comboCount = 0;
+      return 0;
+    }
 
     _lastClearResult = result;
     _lineHighlightLeft = GameConstants.lineClearHighlightSeconds;
@@ -97,7 +104,12 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
       board: board,
       result: result,
     );
-    final clearScore = clearedCellCount * GameConstants.lineClearPointPerCell;
+    final clearedLineCount = result.fullRows.length + result.fullCols.length;
+    final clearScore = _calculateLineClearScore(
+      comboCount: _comboCount,
+      clearedLineCount: clearedLineCount,
+    );
+    _comboCount += 1;
 
     var scoredClear = clearScore;
     if (_nextClearScoreMultiplier > 1.0) {
@@ -113,6 +125,24 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
       score += scoredClear;
     }
     return clearedCellCount;
+  }
+
+  int _calculateLineClearScore({
+    required int comboCount,
+    required int clearedLineCount,
+  }) {
+    if (clearedLineCount <= 0) return 0;
+
+    if (clearedLineCount == 1) {
+      return (comboCount + 1) * GameConstants.lineClearBasePoint;
+    }
+
+    final multiLineScore =
+        (comboCount + clearedLineCount) * GameConstants.lineClearBasePoint;
+    return (multiLineScore *
+            clearedLineCount *
+            GameConstants.lineClearMultiLineBonusMultiplier)
+        .round();
   }
 
   void selectAngel() {
@@ -163,13 +193,16 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   }
 
   void triggerDevil() {
-    _pendingDevilGift = _random.nextBool()
-        ? _DevilGiftType.greedBestBlock
-        : _DevilGiftType.destructionAid;
+    _pendingDevilGift =
+        _selectedDevilGift ??
+        (_random.nextBool()
+            ? DevilGiftType.greedBestBlock
+            : DevilGiftType.destructionAid);
+    _selectedDevilGift = null;
 
     score = (score * (1 - GameConstants.devilScorePenaltyRatio)).toInt();
 
-    final summary = _pendingDevilGift == _DevilGiftType.greedBestBlock
+    final summary = _pendingDevilGift == DevilGiftType.greedBestBlock
         ? 'Greed: next hand gets best block'
         : 'Destruction: next hand gets escape block';
     _showFateBanner(FateType.devil, '$summary, -10% score');
@@ -310,9 +343,12 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     _angelStack = 0;
     _devilStack = 0;
     _storedScore = 0;
+    _comboCount = 0;
     _nextClearScoreMultiplier = 1.0;
     _angelEasyHandBoostPending = false;
     _pendingDevilGift = null;
+    _selectedDevilGift = null;
+    _effectTime = 0;
     _activeFateType = null;
     _activeFateReason = null;
     _fateBannerLeft = 0;
@@ -395,6 +431,10 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     _applyPendingDevilGift();
 
     trayFates = List<FateType?>.filled(GameConstants.traySlotCount, null);
+    trayDevilGifts = List<DevilGiftType?>.filled(
+      GameConstants.traySlotCount,
+      null,
+    );
     selectedTrayIndex = trayBlocks.isNotEmpty ? 0 : null;
     _selectedFate = selectedTrayIndex == null
         ? null
@@ -422,7 +462,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     }
 
     final replaceIndex = _random.nextInt(trayBlocks.length);
-    if (pendingGift == _DevilGiftType.greedBestBlock) {
+    if (pendingGift == DevilGiftType.greedBestBlock) {
       final best = DevilBlockSystem.findBestBlock(
         board: board,
         blockPool: BlockCatalog.pool,
@@ -450,8 +490,16 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
 
     trayBlocks = <BlockShape?>[normal, angel, devil];
     trayFates = <FateType?>[null, FateType.angel, FateType.devil];
+    trayDevilGifts = <DevilGiftType?>[
+      null,
+      null,
+      _random.nextBool()
+          ? DevilGiftType.greedBestBlock
+          : DevilGiftType.destructionAid,
+    ];
     selectedTrayIndex = null;
     _selectedFate = null;
+    _selectedDevilGift = null;
     _alignmentChoicePending = true;
   }
 
@@ -466,6 +514,9 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   void _applyAlignmentChoice(int index) {
     final chosenBlock = trayBlocks[index];
     final chosenFate = trayFates[index];
+    final chosenDevilGift = index < trayDevilGifts.length
+        ? trayDevilGifts[index]
+        : null;
     if (chosenBlock == null) return;
 
     for (var i = 0; i < trayBlocks.length; i++) {
@@ -474,6 +525,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     }
     selectedTrayIndex = index;
     _selectedFate = chosenFate;
+    _selectedDevilGift = chosenFate == FateType.devil ? chosenDevilGift : null;
     _alignmentChoicePending = false;
     isAlignmentTurn = false;
 
@@ -549,6 +601,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   @override
   void update(double dt) {
     super.update(dt);
+    _effectTime += dt;
     if (_lineHighlightLeft > 0) {
       _lineHighlightLeft -= dt;
       if (_lineHighlightLeft <= 0) {
@@ -583,9 +636,11 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
       board: board,
       trayBlocks: trayBlocks,
       trayFates: trayFates,
+      trayDevilGifts: trayDevilGifts,
       selectedTrayIndex: selectedTrayIndex,
       isAlignmentTurn: isAlignmentTurn,
       alignmentChoicePending: _alignmentChoicePending,
+      effectTime: _effectTime,
       dragShape: _draggingShape,
       dragScreenPosition: _dragScreenPosition,
       dragCanPlace: _dragCanPlace,
@@ -638,5 +693,3 @@ class _LineTarget {
   factory _LineTarget.row(int row) => _LineTarget._(_LineAxis.row, row);
   factory _LineTarget.col(int col) => _LineTarget._(_LineAxis.col, col);
 }
-
-enum _DevilGiftType { greedBestBlock, destructionAid }

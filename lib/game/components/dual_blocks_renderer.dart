@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../config/game_constants.dart';
@@ -7,21 +9,26 @@ import '../models/fate_effect.dart';
 import '../models/game_layout.dart';
 
 class DualBlocksRenderer {
-  static final Paint _boardPaint = Paint()..color = GameConstants.boardBackground;
+  static final Paint _boardPaint = Paint()
+    ..color = GameConstants.boardBackground;
   static final Paint _gridPaint = Paint()
     ..color = GameConstants.gridLine
     ..strokeWidth = 1;
   static final Paint _trayPaint = Paint()..color = GameConstants.trayBackground;
-  static final Paint _scorePaint = Paint()..color = GameConstants.scoreBackground;
+  static final Paint _scorePaint = Paint()
+    ..color = GameConstants.scoreBackground;
   static final Paint _cellFallbackPaint = Paint()..color = Colors.blue;
   static final Paint _angelCellPaint = Paint()..color = const Color(0xFF93C5FD);
   static final Paint _devilCellPaint = Paint()..color = const Color(0xFF7F1D1D);
-  static final Paint _slotPaint = Paint()..color = GameConstants.traySlotBackground;
+  static final Paint _slotPaint = Paint()
+    ..color = GameConstants.traySlotBackground;
   static final Paint _slotSelectedPaint = Paint()
     ..color = GameConstants.traySlotSelected.withValues(alpha: 0.35);
-  static final Paint _shapePreviewPaint = Paint()..color = const Color(0xFFF59E0B);
-  static final Paint _shapePreviewAngelPaint = Paint()..color = const Color(0xFF93C5FD);
-  static final Paint _shapePreviewDevilPaint = Paint()..color = const Color(0xFF7F1D1D);
+  static final Paint _shapePreviewPaint = Paint()..color = Colors.blue;
+  static final Paint _shapePreviewAngelPaint = Paint()
+    ..color = const Color(0xFF93C5FD);
+  static final Paint _shapePreviewDevilPaint = Paint()
+    ..color = const Color(0xFF7F1D1D);
   static final Paint _dragOkPaint = Paint()
     ..color = const Color(0xFF34D399).withValues(alpha: 0.65);
   static final Paint _dragBlockedPaint = Paint()
@@ -34,7 +41,18 @@ class DualBlocksRenderer {
     ..color = GameConstants.angelEffect.withValues(alpha: 0.25);
   static final Paint _devilBadgePaint = Paint()
     ..color = GameConstants.devilEffect.withValues(alpha: 0.25);
-  
+  static final Paint _angelSparkPaint = Paint()
+    ..color = const Color(0xFFF8FAFC)
+    ..style = PaintingStyle.fill;
+  static final Paint _devilRedDotPaint = Paint()
+    ..color = const Color(0xFFEF4444)
+    ..style = PaintingStyle.fill;
+  static final Paint _devilBlackDotPaint = Paint()
+    ..color = const Color(0xFF111827)
+    ..style = PaintingStyle.fill;
+  static final Paint _devilGreenDotPaint = Paint()
+    ..color = const Color(0xFF22C55E)
+    ..style = PaintingStyle.fill;
 
   static void render({
     required Canvas canvas,
@@ -45,9 +63,11 @@ class DualBlocksRenderer {
     required List<List<CellState>> board,
     required List<BlockShape?> trayBlocks,
     required List<FateType?> trayFates,
+    required List<DevilGiftType?> trayDevilGifts,
     required int? selectedTrayIndex,
     required bool isAlignmentTurn,
     required bool alignmentChoicePending,
+    required double effectTime,
     required BlockShape? dragShape,
     required Offset? dragScreenPosition,
     required bool dragCanPlace,
@@ -100,7 +120,9 @@ class DualBlocksRenderer {
       layout,
       trayBlocks,
       trayFates,
+      trayDevilGifts,
       selectedTrayIndex,
+      effectTime,
     );
     if (isGameOver) {
       _drawGameOverOverlay(canvas, layout);
@@ -116,10 +138,11 @@ class DualBlocksRenderer {
       _boardPaint,
     );
   }
+
   static void _drawCells(
-  Canvas canvas,
-  GameLayout layout,
-  List<List<CellState>> board,
+    Canvas canvas,
+    GameLayout layout,
+    List<List<CellState>> board,
   ) {
     for (int row = 0; row < GameConstants.boardSize; row++) {
       for (int col = 0; col < GameConstants.boardSize; col++) {
@@ -172,10 +195,7 @@ class DualBlocksRenderer {
 
     scorePainter.paint(
       canvas,
-      Offset(
-        layout.scoreRect.left + 14,
-        layout.scoreRect.top + 8,
-      ),
+      Offset(layout.scoreRect.left + 14, layout.scoreRect.top + 8),
     );
   }
 
@@ -194,14 +214,15 @@ class DualBlocksRenderer {
 
     turnPainter.paint(
       canvas,
-      Offset(
-        layout.scoreRect.left + 14,
-        layout.scoreRect.top + 28,
-      ),
+      Offset(layout.scoreRect.left + 14, layout.scoreRect.top + 28),
     );
   }
 
-  static void _drawStoredScore(Canvas canvas, GameLayout layout, int storedScore) {
+  static void _drawStoredScore(
+    Canvas canvas,
+    GameLayout layout,
+    int storedScore,
+  ) {
     final chargePainter = TextPainter(
       text: TextSpan(
         text: 'Stored: $storedScore',
@@ -278,13 +299,7 @@ class DualBlocksRenderer {
       maxLines: 1,
     )..layout(maxWidth: rect.width - 6);
 
-    textPainter.paint(
-      canvas,
-      Offset(
-        rect.left + 4,
-        rect.top + 3,
-      ),
-    );
+    textPainter.paint(canvas, Offset(rect.left + 4, rect.top + 3));
   }
 
   static String _stackDots(int stack) {
@@ -337,7 +352,9 @@ class DualBlocksRenderer {
     GameLayout layout,
     List<BlockShape?> trayBlocks,
     List<FateType?> trayFates,
+    List<DevilGiftType?> trayDevilGifts,
     int? selectedTrayIndex,
+    double effectTime,
   ) {
     final slotRects = layout.traySlotRects();
     for (var i = 0; i < slotRects.length; i++) {
@@ -346,8 +363,8 @@ class DualBlocksRenderer {
       final slotPaint = slotFate == FateType.angel
           ? _angelBadgePaint
           : slotFate == FateType.devil
-              ? _devilBadgePaint
-              : _slotPaint;
+          ? _devilBadgePaint
+          : _slotPaint;
       canvas.drawRRect(
         RRect.fromRectAndRadius(slotRect, const Radius.circular(10)),
         slotPaint,
@@ -360,15 +377,123 @@ class DualBlocksRenderer {
       }
 
       final shape = i < trayBlocks.length ? trayBlocks[i] : null;
+      final effectRect = shape == null
+          ? slotRect.deflate(8)
+          : _shapePreviewBounds(slotRect, shape);
       if (shape != null) {
-        _drawShapePreview(
-          canvas,
-          slotRect,
-          shape,
-          fate: slotFate,
-        );
+        _drawShapePreview(canvas, slotRect, shape, fate: slotFate);
+      }
+
+      if (slotFate == FateType.angel) {
+        _drawAngelSparkles(canvas, effectRect, effectTime, i);
+      } else if (slotFate == FateType.devil) {
+        final devilGift = i < trayDevilGifts.length ? trayDevilGifts[i] : null;
+        if (devilGift == DevilGiftType.destructionAid) {
+          _drawDevilDestructionDots(canvas, effectRect, effectTime, i);
+        } else {
+          _drawDevilGreedDots(canvas, effectRect, effectTime, i);
+        }
       }
     }
+  }
+
+  static void _drawAngelSparkles(
+    Canvas canvas,
+    Rect effectRect,
+    double effectTime,
+    int slotIndex,
+  ) {
+    for (var i = 0; i < 8; i++) {
+      final seed = (slotIndex * 37 + i * 11).toDouble();
+      final px =
+          effectRect.left +
+          3 +
+          ((seed * 17) % (math.max(1.0, effectRect.width - 6)));
+      final py =
+          effectRect.top +
+          3 +
+          ((seed * 29) % (math.max(1.0, effectRect.height - 6)));
+      final blink = (math.sin(effectTime * 4.8 + seed) + 1) / 2;
+      final radius = 2.4 + blink * 2.2;
+      final alpha = 0.25 + blink * 0.75;
+
+      _angelSparkPaint.color = const Color(0xFFF8FAFC).withValues(alpha: alpha);
+      final path = _buildStarPath(Offset(px, py), radius);
+      canvas.drawPath(path, _angelSparkPaint);
+    }
+  }
+
+  static void _drawDevilGreedDots(
+    Canvas canvas,
+    Rect effectRect,
+    double effectTime,
+    int slotIndex,
+  ) {
+    for (var i = 0; i < 12; i++) {
+      final seed = (slotIndex * 41 + i * 13).toDouble();
+      final baseX =
+          effectRect.left +
+          3 +
+          ((seed * 19) % (math.max(1.0, effectRect.width - 6)));
+      final phase = (effectTime * 0.8 + (i * 0.07)) % 1.0;
+      final y =
+          effectRect.bottom -
+          3 -
+          (phase * math.max(1.0, effectRect.height - 6));
+      final size = 1.6 + ((i % 3) * 0.7);
+      final alpha = 0.2 + (1 - phase) * 0.8;
+
+      final paint = i.isEven ? _devilRedDotPaint : _devilBlackDotPaint;
+      paint.color =
+          (i.isEven ? const Color(0xFFEF4444) : const Color(0xFF111827))
+              .withValues(alpha: alpha);
+      canvas.drawCircle(Offset(baseX, y), size, paint);
+    }
+  }
+
+  static void _drawDevilDestructionDots(
+    Canvas canvas,
+    Rect effectRect,
+    double effectTime,
+    int slotIndex,
+  ) {
+    for (var i = 0; i < 12; i++) {
+      final seed = (slotIndex * 53 + i * 7).toDouble();
+      final baseX =
+          effectRect.left +
+          3 +
+          ((seed * 23) % (math.max(1.0, effectRect.width - 6)));
+      final phase = (effectTime * 0.75 + (i * 0.09)) % 1.0;
+      final y =
+          effectRect.top + 3 + (phase * math.max(1.0, effectRect.height - 6));
+      final size = 1.8 + ((i % 3) * 0.8);
+      final alpha = 0.25 + (1 - phase) * 0.7;
+
+      _devilGreenDotPaint.color = const Color(
+        0xFF22C55E,
+      ).withValues(alpha: alpha);
+      canvas.drawCircle(Offset(baseX, y), size, _devilGreenDotPaint);
+    }
+  }
+
+  static Path _buildStarPath(Offset center, double radius) {
+    final path = Path();
+    final inner = radius * 0.45;
+
+    for (var i = 0; i < 10; i++) {
+      final angle = -math.pi / 2 + (math.pi / 5) * i;
+      final r = i.isEven ? radius : inner;
+      final x = center.dx + math.cos(angle) * r;
+      final y = center.dy + math.sin(angle) * r;
+
+      if (i == 0) {
+        path.moveTo(x, y);
+      } else {
+        path.lineTo(x, y);
+      }
+    }
+    path.close();
+    return path;
   }
 
   static void _drawAlignmentHeader(Canvas canvas, GameLayout layout) {
@@ -386,19 +511,54 @@ class DualBlocksRenderer {
 
     painter.paint(
       canvas,
-      Offset(
-        layout.bottomTrayRect.left + 8,
-        layout.bottomTrayRect.top - 16,
-      ),
+      Offset(layout.bottomTrayRect.left + 8, layout.bottomTrayRect.top - 16),
     );
   }
 
   static void _drawShapePreview(
     Canvas canvas,
     Rect slotRect,
-    BlockShape shape,
-    {FateType? fate}
-  ) {
+    BlockShape shape, {
+    FateType? fate,
+  }) {
+    const previewCell = 14.0;
+    final previewBounds = _shapePreviewBounds(slotRect, shape);
+    final points = shape.cells;
+
+    var minX = points.first.x;
+    var maxX = points.first.x;
+    var minY = points.first.y;
+    var maxY = points.first.y;
+
+    for (final p in points) {
+      if (p.x < minX) minX = p.x;
+      if (p.x > maxX) maxX = p.x;
+      if (p.y < minY) minY = p.y;
+      if (p.y > maxY) maxY = p.y;
+    }
+
+    final originX = previewBounds.left;
+    final originY = previewBounds.top;
+
+    for (final point in points) {
+      final left = originX + ((point.x - minX) * previewCell);
+      final top = originY + ((point.y - minY) * previewCell);
+      final paint = fate == FateType.angel
+          ? _shapePreviewAngelPaint
+          : fate == FateType.devil
+          ? _shapePreviewDevilPaint
+          : _shapePreviewPaint;
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(left, top, previewCell - 2, previewCell - 2),
+          const Radius.circular(3),
+        ),
+        paint,
+      );
+    }
+  }
+
+  static Rect _shapePreviewBounds(Rect slotRect, BlockShape shape) {
     const previewCell = 14.0;
     final points = shape.cells;
 
@@ -418,23 +578,7 @@ class DualBlocksRenderer {
     final height = ((maxY - minY) + 1) * previewCell;
     final originX = slotRect.center.dx - (width / 2);
     final originY = slotRect.center.dy - (height / 2);
-
-    for (final point in points) {
-      final left = originX + ((point.x - minX) * previewCell);
-      final top = originY + ((point.y - minY) * previewCell);
-      final paint = fate == FateType.angel
-          ? _shapePreviewAngelPaint
-          : fate == FateType.devil
-              ? _shapePreviewDevilPaint
-              : _shapePreviewPaint;
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(left, top, previewCell - 2, previewCell - 2),
-          const Radius.circular(3),
-        ),
-        paint,
-      );
-    }
+    return Rect.fromLTWH(originX, originY, width, height);
   }
 
   static void _drawDragPreview({
@@ -552,7 +696,9 @@ class DualBlocksRenderer {
       178,
       20,
     );
-    final badgePaint = type == FateType.angel ? _angelBadgePaint : _devilBadgePaint;
+    final badgePaint = type == FateType.angel
+        ? _angelBadgePaint
+        : _devilBadgePaint;
     canvas.drawRRect(
       RRect.fromRectAndRadius(badgeRect, const Radius.circular(8)),
       badgePaint,
@@ -575,12 +721,6 @@ class DualBlocksRenderer {
       ellipsis: '...',
     )..layout(maxWidth: badgeRect.width - 10);
 
-    textPainter.paint(
-      canvas,
-      Offset(
-        badgeRect.left + 5,
-        badgeRect.top + 3,
-      ),
-    );
+    textPainter.paint(canvas, Offset(badgeRect.left + 5, badgeRect.top + 3));
   }
 }
