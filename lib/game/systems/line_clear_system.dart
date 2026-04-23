@@ -13,14 +13,14 @@ class LineClearSystem {
     final colCount = board.first.length;
 
     for (var row = 0; row < rowCount; row++) {
-      final isFull = board[row].every((cell) => cell == CellState.filled);
+      final isFull = board[row].every((cell) => cell.isOccupied);
       if (isFull) fullRows.add(row);
     }
 
     for (var col = 0; col < colCount; col++) {
       var isFull = true;
       for (var row = 0; row < rowCount; row++) {
-        if (board[row][col] != CellState.filled) {
+        if (!board[row][col].isOccupied) {
           isFull = false;
           break;
         }

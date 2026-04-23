@@ -36,7 +36,7 @@ class FateSystem {
     var count = 0;
     for (final row in board) {
       for (final cell in row) {
-        if (cell == CellState.filled) count += 1;
+        if (cell.isOccupied) count += 1;
       }
     }
     return count;

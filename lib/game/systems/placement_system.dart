@@ -8,16 +8,17 @@ class PlacementSystem {
     required int col,
   }) {
     if (!_isInBounds(board: board, row: row, col: col)) return false;
-    return board[row][col] == CellState.empty;
+    return !board[row][col].isOccupied;
   }
 
   static bool placeBlock({
     required List<List<CellState>> board,
     required int row,
     required int col,
+    CellState fillState = CellState.filled,
   }) {
     if (!canPlace(board: board, row: row, col: col)) return false;
-    board[row][col] = CellState.filled;
+    board[row][col] = fillState;
     return true;
   }
 
@@ -40,6 +41,7 @@ class PlacementSystem {
     required int anchorRow,
     required int anchorCol,
     required BlockShape shape,
+    CellState fillState = CellState.filled,
   }) {
     if (!canPlaceShape(
       board: board,
@@ -53,7 +55,7 @@ class PlacementSystem {
     for (final cell in shape.cells) {
       final row = anchorRow + cell.y;
       final col = anchorCol + cell.x;
-      board[row][col] = CellState.filled;
+      board[row][col] = fillState;
     }
     return true;
   }

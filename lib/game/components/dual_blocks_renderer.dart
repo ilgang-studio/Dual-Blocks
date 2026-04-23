@@ -13,12 +13,15 @@ class DualBlocksRenderer {
     ..strokeWidth = 1;
   static final Paint _trayPaint = Paint()..color = GameConstants.trayBackground;
   static final Paint _scorePaint = Paint()..color = GameConstants.scoreBackground;
-  static final Paint _cellPaint = Paint()
-    ..color = Colors.blue; // 테스트용
+  static final Paint _cellFallbackPaint = Paint()..color = Colors.blue;
+  static final Paint _angelCellPaint = Paint()..color = const Color(0xFF93C5FD);
+  static final Paint _devilCellPaint = Paint()..color = const Color(0xFF7F1D1D);
   static final Paint _slotPaint = Paint()..color = GameConstants.traySlotBackground;
   static final Paint _slotSelectedPaint = Paint()
     ..color = GameConstants.traySlotSelected.withValues(alpha: 0.35);
   static final Paint _shapePreviewPaint = Paint()..color = const Color(0xFFF59E0B);
+  static final Paint _shapePreviewAngelPaint = Paint()..color = const Color(0xFF93C5FD);
+  static final Paint _shapePreviewDevilPaint = Paint()..color = const Color(0xFF7F1D1D);
   static final Paint _dragOkPaint = Paint()
     ..color = const Color(0xFF34D399).withValues(alpha: 0.65);
   static final Paint _dragBlockedPaint = Paint()
@@ -41,7 +44,10 @@ class DualBlocksRenderer {
     required bool isGameOver,
     required List<List<CellState>> board,
     required List<BlockShape?> trayBlocks,
+    required List<FateType?> trayFates,
     required int? selectedTrayIndex,
+    required bool isAlignmentTurn,
+    required bool alignmentChoicePending,
     required BlockShape? dragShape,
     required Offset? dragScreenPosition,
     required bool dragCanPlace,
@@ -86,10 +92,14 @@ class DualBlocksRenderer {
     }
     _drawGrid(canvas, layout);
     _drawBottomTray(canvas, layout);
+    if (isAlignmentTurn || alignmentChoicePending) {
+      _drawAlignmentHeader(canvas, layout);
+    }
     _drawTraySlots(
       canvas,
       layout,
       trayBlocks,
+      trayFates,
       selectedTrayIndex,
     );
     if (isGameOver) {
@@ -121,7 +131,25 @@ class DualBlocksRenderer {
             layout.cellSize,
           );
 
-          canvas.drawRect(rect, _cellPaint);
+          canvas.drawRect(rect, _cellFallbackPaint);
+        }
+        if (board[row][col] == CellState.angelFilled) {
+          final rect = Rect.fromLTWH(
+            layout.boardRect.left + col * layout.cellSize,
+            layout.boardRect.top + row * layout.cellSize,
+            layout.cellSize,
+            layout.cellSize,
+          );
+          canvas.drawRect(rect, _angelCellPaint);
+        }
+        if (board[row][col] == CellState.devilFilled) {
+          final rect = Rect.fromLTWH(
+            layout.boardRect.left + col * layout.cellSize,
+            layout.boardRect.top + row * layout.cellSize,
+            layout.cellSize,
+            layout.cellSize,
+          );
+          canvas.drawRect(rect, _devilCellPaint);
         }
       }
     }
@@ -308,14 +336,21 @@ class DualBlocksRenderer {
     Canvas canvas,
     GameLayout layout,
     List<BlockShape?> trayBlocks,
+    List<FateType?> trayFates,
     int? selectedTrayIndex,
   ) {
     final slotRects = layout.traySlotRects();
     for (var i = 0; i < slotRects.length; i++) {
       final slotRect = slotRects[i];
+      final slotFate = i < trayFates.length ? trayFates[i] : null;
+      final slotPaint = slotFate == FateType.angel
+          ? _angelBadgePaint
+          : slotFate == FateType.devil
+              ? _devilBadgePaint
+              : _slotPaint;
       canvas.drawRRect(
         RRect.fromRectAndRadius(slotRect, const Radius.circular(10)),
-        _slotPaint,
+        slotPaint,
       );
       if (selectedTrayIndex == i) {
         canvas.drawRRect(
@@ -326,15 +361,43 @@ class DualBlocksRenderer {
 
       final shape = i < trayBlocks.length ? trayBlocks[i] : null;
       if (shape != null) {
-        _drawShapePreview(canvas, slotRect, shape);
+        _drawShapePreview(
+          canvas,
+          slotRect,
+          shape,
+          fate: slotFate,
+        );
       }
     }
+  }
+
+  static void _drawAlignmentHeader(Canvas canvas, GameLayout layout) {
+    final painter = TextPainter(
+      text: const TextSpan(
+        text: 'ALIGNMENT TURN: Choose 1 (others discarded)',
+        style: TextStyle(
+          color: Color(0xFFFDE68A),
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout(maxWidth: layout.bottomTrayRect.width);
+
+    painter.paint(
+      canvas,
+      Offset(
+        layout.bottomTrayRect.left + 8,
+        layout.bottomTrayRect.top - 16,
+      ),
+    );
   }
 
   static void _drawShapePreview(
     Canvas canvas,
     Rect slotRect,
     BlockShape shape,
+    {FateType? fate}
   ) {
     const previewCell = 14.0;
     final points = shape.cells;
@@ -359,12 +422,17 @@ class DualBlocksRenderer {
     for (final point in points) {
       final left = originX + ((point.x - minX) * previewCell);
       final top = originY + ((point.y - minY) * previewCell);
+      final paint = fate == FateType.angel
+          ? _shapePreviewAngelPaint
+          : fate == FateType.devil
+              ? _shapePreviewDevilPaint
+              : _shapePreviewPaint;
       canvas.drawRRect(
         RRect.fromRectAndRadius(
           Rect.fromLTWH(left, top, previewCell - 2, previewCell - 2),
           const Radius.circular(3),
         ),
-        _shapePreviewPaint,
+        paint,
       );
     }
   }

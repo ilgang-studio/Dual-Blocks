@@ -10,6 +10,7 @@ import 'models/cell_state.dart';
 import 'models/fate_effect.dart';
 import 'models/game_layout.dart';
 import 'models/line_clear_result.dart';
+import 'systems/alignment_turn_system.dart';
 import 'systems/game_flow_system.dart';
 import 'systems/hand_generation_system.dart';
 import 'systems/layout_system.dart';
@@ -22,7 +23,10 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   int turn = 1;
   bool isGameOver = false;
   List<BlockShape?> trayBlocks = [];
+  List<FateType?> trayFates = [];
   int? selectedTrayIndex;
+  bool isAlignmentTurn = false;
+  bool _alignmentChoicePending = false;
   bool _isDraggingBlock = false;
   BlockShape? _draggingShape;
   Offset? _dragScreenPosition;
@@ -35,9 +39,11 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   int _angelStack = 0;
   int _devilStack = 0;
   int _storedScore = 0;
+  FateType? _selectedFate;
   FateType? _activeFateType;
   String? _activeFateReason;
   double _fateBannerLeft = 0;
+  final AlignmentTurnSystem _alignmentTurnSystem = AlignmentTurnSystem();
 
   final List<List<CellState>> board = List.generate(
     GameConstants.boardSize,
@@ -65,6 +71,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
       anchorRow: row,
       anchorCol: col,
       shape: selectedShape,
+      fillState: _currentFillState,
     );
     if (placed) {
       score += selectedShape.cells.length;
@@ -99,6 +106,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   void selectAngel() {
     _angelStack += 1;
     _devilStack = 0;
+    _selectedFate = FateType.angel;
     if (_angelStack >= GameConstants.fateTriggerStack) {
       triggerAngel();
       _angelStack = 0;
@@ -108,6 +116,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   void selectDevil() {
     _devilStack += 1;
     _angelStack = 0;
+    _selectedFate = FateType.devil;
     if (_devilStack >= GameConstants.fateTriggerStack) {
       triggerDevil();
       _devilStack = 0;
@@ -217,7 +226,13 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     if (index >= trayBlocks.length) return false;
     if (trayBlocks[index] == null) return false;
 
+    if (_alignmentChoicePending) {
+      _applyAlignmentChoice(index);
+      return true;
+    }
+
     selectedTrayIndex = index;
+    _selectedFate = trayFates[index];
     return true;
   }
 
@@ -245,6 +260,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     _activeFateType = null;
     _activeFateReason = null;
     _fateBannerLeft = 0;
+    _alignmentTurnSystem.turnCounter = 1;
     _refillTray(increaseTurn: false);
   }
 
@@ -259,13 +275,13 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   }
 
   void _refillTray({required bool increaseTurn}) {
-    trayBlocks = HandGenerationSystem.generateHand(
-      board,
-      random: _random,
-      blockPool: BlockCatalog.pool,
-      handSize: GameConstants.traySlotCount,
-    ).map<BlockShape?>((shape) => shape).toList(growable: false);
-    selectedTrayIndex = trayBlocks.isNotEmpty ? 0 : null;
+    isAlignmentTurn = _alignmentTurnSystem.shouldStartAlignmentTurn();
+    if (isAlignmentTurn) {
+      _buildAlignmentTray();
+    } else {
+      _buildNormalTray();
+    }
+
     if (increaseTurn) {
       turn += 1;
     }
@@ -273,6 +289,10 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   }
 
   void _evaluateGameOver() {
+    if (_alignmentChoicePending) {
+      isGameOver = false;
+      return;
+    }
     final hasPlayable = GameFlowSystem.hasAnyPlaceableShape(
       board: board,
       trayBlocks: trayBlocks,
@@ -306,6 +326,60 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     _evaluateGameOver();
   }
 
+  void _buildNormalTray() {
+    trayBlocks = HandGenerationSystem.generateHand(
+      board,
+      random: _random,
+      blockPool: BlockCatalog.pool,
+      handSize: GameConstants.traySlotCount,
+    ).map<BlockShape?>((shape) => shape).toList(growable: false);
+    trayFates = List<FateType?>.filled(GameConstants.traySlotCount, null);
+    selectedTrayIndex = trayBlocks.isNotEmpty ? 0 : null;
+    _selectedFate = selectedTrayIndex == null ? null : trayFates[selectedTrayIndex!];
+    _alignmentChoicePending = false;
+  }
+
+  void _buildAlignmentTray() {
+    final normal = _pickPlaceableRandomShape();
+    final angel = _pickPlaceableRandomShape();
+    final devil = _pickPlaceableRandomShape();
+
+    trayBlocks = <BlockShape?>[normal, angel, devil];
+    trayFates = <FateType?>[null, FateType.angel, FateType.devil];
+    selectedTrayIndex = null;
+    _selectedFate = null;
+    _alignmentChoicePending = true;
+  }
+
+  BlockShape _pickPlaceableRandomShape() {
+    final placeable = BlockCatalog.pool
+        .where((shape) => HandGenerationSystem.canPlaceAnywhere(board, shape))
+        .toList(growable: false);
+    final source = placeable.isNotEmpty ? placeable : BlockCatalog.pool;
+    return source[_random.nextInt(source.length)];
+  }
+
+  void _applyAlignmentChoice(int index) {
+    final chosenBlock = trayBlocks[index];
+    final chosenFate = trayFates[index];
+    if (chosenBlock == null) return;
+
+    for (var i = 0; i < trayBlocks.length; i++) {
+      if (i == index) continue;
+      trayBlocks[i] = null;
+    }
+    selectedTrayIndex = index;
+    _selectedFate = chosenFate;
+    _alignmentChoicePending = false;
+    isAlignmentTurn = false;
+
+    if (chosenFate == FateType.angel) {
+      selectAngel();
+    } else if (chosenFate == FateType.devil) {
+      selectDevil();
+    }
+  }
+
   @override
   void onTapDown(TapDownEvent event) {
     super.onTapDown(event);
@@ -318,19 +392,6 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
       event.localPosition.x,
       event.localPosition.y,
     );
-
-    final currentLayout = layout;
-    if (currentLayout != null) {
-      final choice = currentLayout.screenToFateChoice(screenPosition);
-      if (choice == FateType.angel) {
-        selectAngel();
-        return;
-      }
-      if (choice == FateType.devil) {
-        selectDevil();
-        return;
-      }
-    }
 
     final selected = trySelectTrayFromScreen(screenPosition);
     if (selected) return;
@@ -425,7 +486,10 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
       isGameOver: isGameOver,
       board: board,
       trayBlocks: trayBlocks,
+      trayFates: trayFates,
       selectedTrayIndex: selectedTrayIndex,
+      isAlignmentTurn: isAlignmentTurn,
+      alignmentChoicePending: _alignmentChoicePending,
       dragShape: _draggingShape,
       dragScreenPosition: _dragScreenPosition,
       dragCanPlace: _dragCanPlace,
@@ -454,6 +518,12 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     final row = dragBoardPoint.y;
     final col = dragBoardPoint.x;
     return canPlace(row, col);
+  }
+
+  CellState get _currentFillState {
+    if (_selectedFate == FateType.angel) return CellState.angelFilled;
+    if (_selectedFate == FateType.devil) return CellState.devilFilled;
+    return CellState.filled;
   }
 
   int get angelStack => _angelStack;
