@@ -7,8 +7,10 @@ import 'components/dual_blocks_renderer.dart';
 import 'config/game_constants.dart';
 import 'models/block_shape.dart';
 import 'models/cell_state.dart';
+import 'models/fate_effect.dart';
 import 'models/game_layout.dart';
 import 'models/line_clear_result.dart';
+import 'systems/fate_system.dart';
 import 'systems/game_flow_system.dart';
 import 'systems/hand_generation_system.dart';
 import 'systems/layout_system.dart';
@@ -31,6 +33,9 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   );
   double _lineHighlightLeft = 0;
   final math.Random _random = math.Random();
+  int _clearStreak = 0;
+  int _noClearStreak = 0;
+  int _angelCharge = 0;
 
   final List<List<CellState>> board = List.generate(
     GameConstants.boardSize,
@@ -61,15 +66,17 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     );
     if (placed) {
       score += selectedShape.cells.length;
-      _applyLineClear();
+      final clearedCellCount = _applyLineClear();
+      _updateClearStreak(clearedCellCount);
+      _applyFateByState(clearedCellCount: clearedCellCount);
       _consumeSelectedTrayBlock();
     }
     return placed;
   }
 
-  void _applyLineClear() {
+  int _applyLineClear() {
     final result = LineClearSystem.findFilledLines(board);
-    if (!result.hasAny) return;
+    if (!result.hasAny) return 0;
 
     _lastClearResult = result;
     _lineHighlightLeft = GameConstants.lineClearHighlightSeconds;
@@ -79,6 +86,77 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
       result: result,
     );
     score += clearedCellCount * GameConstants.lineClearPointPerCell;
+    return clearedCellCount;
+  }
+
+  void _updateClearStreak(int clearedCellCount) {
+    if (clearedCellCount > 0) {
+      _clearStreak += 1;
+      _noClearStreak = 0;
+      return;
+    }
+    _clearStreak = 0;
+    _noClearStreak += 1;
+  }
+
+  void _applyFateByState({required int clearedCellCount}) {
+    final fillRatio = FateSystem.fillRatio(board);
+    final decision = FateSystem.evaluate(
+      clearedCellCount: clearedCellCount,
+      clearStreak: _clearStreak,
+      noClearStreak: _noClearStreak,
+      fillRatio: fillRatio,
+    );
+    if (decision == null) return;
+
+    if (decision.type == FateType.angel) {
+      _angelCharge += GameConstants.angelChargePerTrigger;
+      return;
+    }
+
+    // Devil effect: immediate reward + immediate risk.
+    score += GameConstants.devilScoreBonus;
+    _fillRandomEmptyCells(GameConstants.devilSpawnCount);
+  }
+
+  void _fillRandomEmptyCells(int count) {
+    final empty = <math.Point<int>>[];
+    for (var row = 0; row < board.length; row++) {
+      for (var col = 0; col < board[row].length; col++) {
+        if (board[row][col] == CellState.empty) {
+          empty.add(math.Point<int>(col, row));
+        }
+      }
+    }
+    empty.shuffle(_random);
+    final target = count.clamp(0, empty.length);
+    for (var i = 0; i < target; i++) {
+      final point = empty[i];
+      board[point.y][point.x] = CellState.filled;
+    }
+  }
+
+  void _clearRandomFilledCells(int count) {
+    final filled = <math.Point<int>>[];
+    for (var row = 0; row < board.length; row++) {
+      for (var col = 0; col < board[row].length; col++) {
+        if (board[row][col] == CellState.filled) {
+          filled.add(math.Point<int>(col, row));
+        }
+      }
+    }
+    filled.shuffle(_random);
+    final target = count.clamp(0, filled.length);
+    for (var i = 0; i < target; i++) {
+      final point = filled[i];
+      board[point.y][point.x] = CellState.empty;
+    }
+  }
+
+  void _applyAngelAidAtTurnStart() {
+    if (_angelCharge <= 0) return;
+    _clearRandomFilledCells(1);
+    _angelCharge -= 1;
   }
 
   math.Point<int>? screenToBoard(Offset p) {
@@ -145,6 +223,9 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     score = 0;
     turn = 1;
     isGameOver = false;
+    _clearStreak = 0;
+    _noClearStreak = 0;
+    _angelCharge = 0;
     _refillTray(increaseTurn: false);
   }
 
@@ -168,6 +249,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     selectedTrayIndex = trayBlocks.isNotEmpty ? 0 : null;
     if (increaseTurn) {
       turn += 1;
+      _applyAngelAidAtTurnStart();
     }
     _evaluateGameOver();
   }
