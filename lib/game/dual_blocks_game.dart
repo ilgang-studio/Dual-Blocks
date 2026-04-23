@@ -319,6 +319,19 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
       event.localPosition.y,
     );
 
+    final currentLayout = layout;
+    if (currentLayout != null) {
+      final choice = currentLayout.screenToFateChoice(screenPosition);
+      if (choice == FateType.angel) {
+        selectAngel();
+        return;
+      }
+      if (choice == FateType.devil) {
+        selectDevil();
+        return;
+      }
+    }
+
     final selected = trySelectTrayFromScreen(screenPosition);
     if (selected) return;
   }

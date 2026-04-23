@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import '../config/game_constants.dart';
+import 'fate_effect.dart';
 
 class GameLayout {
   const GameLayout({
@@ -53,5 +54,27 @@ class GameLayout {
           (index * (slotSize + GameConstants.traySlotGap));
       return Rect.fromLTWH(left, top, slotSize, slotSize);
     });
+  }
+
+  Rect angelChoiceRect() {
+    const width = 78.0;
+    const height = 18.0;
+    final left = scoreRect.right - (width * 2) - 16;
+    final top = scoreRect.top + 28;
+    return Rect.fromLTWH(left, top, width, height);
+  }
+
+  Rect devilChoiceRect() {
+    const width = 78.0;
+    const height = 18.0;
+    final left = scoreRect.right - width - 8;
+    final top = scoreRect.top + 28;
+    return Rect.fromLTWH(left, top, width, height);
+  }
+
+  FateType? screenToFateChoice(Offset point) {
+    if (angelChoiceRect().contains(point)) return FateType.angel;
+    if (devilChoiceRect().contains(point)) return FateType.devil;
+    return null;
   }
 }
