@@ -8,6 +8,7 @@ import 'config/game_constants.dart';
 import 'models/block_shape.dart';
 import 'models/cell_state.dart';
 import 'models/game_layout.dart';
+import 'models/line_clear_result.dart';
 import 'systems/layout_system.dart';
 import 'systems/line_clear_system.dart';
 import 'systems/placement_system.dart';
@@ -20,6 +21,11 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   bool _isDraggingBlock = false;
   BlockShape? _draggingShape;
   Offset? _dragScreenPosition;
+  LineClearResult _lastClearResult = const LineClearResult(
+    fullRows: {},
+    fullCols: {},
+  );
+  double _lineHighlightLeft = 0;
 
   final List<List<CellState>> board = List.generate(
     GameConstants.boardSize,
@@ -58,6 +64,9 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   void _applyLineClear() {
     final result = LineClearSystem.findFilledLines(board);
     if (!result.hasAny) return;
+
+    _lastClearResult = result;
+    _lineHighlightLeft = GameConstants.lineClearHighlightSeconds;
 
     final clearedCellCount = LineClearSystem.clearFilledLines(
       board: board,
@@ -211,6 +220,18 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   }
 
   @override
+  void update(double dt) {
+    super.update(dt);
+    if (_lineHighlightLeft <= 0) return;
+
+    _lineHighlightLeft -= dt;
+    if (_lineHighlightLeft <= 0) {
+      _lineHighlightLeft = 0;
+      _lastClearResult = const LineClearResult(fullRows: {}, fullCols: {});
+    }
+  }
+
+  @override
   void render(Canvas canvas) {
     super.render(canvas);
 
@@ -227,6 +248,9 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
       dragShape: _draggingShape,
       dragScreenPosition: _dragScreenPosition,
       dragCanPlace: _dragCanPlace,
+      clearRows: _lastClearResult.fullRows,
+      clearCols: _lastClearResult.fullCols,
+      showClearHighlight: _lineHighlightLeft > 0,
     );
   }
 

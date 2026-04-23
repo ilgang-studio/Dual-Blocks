@@ -22,6 +22,8 @@ class DualBlocksRenderer {
     ..color = const Color(0xFF34D399).withValues(alpha: 0.65);
   static final Paint _dragBlockedPaint = Paint()
     ..color = const Color(0xFFF87171).withValues(alpha: 0.65);
+  static final Paint _lineClearPaint = Paint()
+    ..color = GameConstants.lineClearHighlight.withValues(alpha: 0.38);
   
 
   static void render({
@@ -34,9 +36,20 @@ class DualBlocksRenderer {
     required BlockShape? dragShape,
     required Offset? dragScreenPosition,
     required bool dragCanPlace,
+    required Set<int> clearRows,
+    required Set<int> clearCols,
+    required bool showClearHighlight,
   }) {
     _drawBoard(canvas, layout);
     _drawCells(canvas, layout, board);
+    if (showClearHighlight) {
+      _drawLineClearHighlight(
+        canvas: canvas,
+        layout: layout,
+        clearRows: clearRows,
+        clearCols: clearCols,
+      );
+    }
     _drawDragPreview(
       canvas: canvas,
       layout: layout,
@@ -238,6 +251,33 @@ class DualBlocksRenderer {
         layout.cellSize,
       );
       canvas.drawRect(rect, paint);
+    }
+  }
+
+  static void _drawLineClearHighlight({
+    required Canvas canvas,
+    required GameLayout layout,
+    required Set<int> clearRows,
+    required Set<int> clearCols,
+  }) {
+    for (final row in clearRows) {
+      final rect = Rect.fromLTWH(
+        layout.boardRect.left,
+        layout.boardRect.top + (row * layout.cellSize),
+        layout.boardRect.width,
+        layout.cellSize,
+      );
+      canvas.drawRect(rect, _lineClearPaint);
+    }
+
+    for (final col in clearCols) {
+      final rect = Rect.fromLTWH(
+        layout.boardRect.left + (col * layout.cellSize),
+        layout.boardRect.top,
+        layout.cellSize,
+        layout.boardRect.height,
+      );
+      canvas.drawRect(rect, _lineClearPaint);
     }
   }
 }
