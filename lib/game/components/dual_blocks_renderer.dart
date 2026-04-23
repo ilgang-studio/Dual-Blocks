@@ -30,6 +30,8 @@ class DualBlocksRenderer {
     required Canvas canvas,
     required GameLayout layout,
     required int score,
+    required int turn,
+    required bool isGameOver,
     required List<List<CellState>> board,
     required List<BlockShape?> trayBlocks,
     required int? selectedTrayIndex,

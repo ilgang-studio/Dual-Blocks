@@ -9,6 +9,7 @@ import 'models/block_shape.dart';
 import 'models/cell_state.dart';
 import 'models/game_layout.dart';
 import 'models/line_clear_result.dart';
+import 'systems/game_flow_system.dart';
 import 'systems/layout_system.dart';
 import 'systems/line_clear_system.dart';
 import 'systems/placement_system.dart';
@@ -16,6 +17,8 @@ import 'systems/placement_system.dart';
 class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   GameLayout? layout;
   int score = 0;
+  int turn = 1;
+  bool isGameOver = false;
   List<BlockShape?> trayBlocks = [];
   int? selectedTrayIndex;
   bool _isDraggingBlock = false;
@@ -44,6 +47,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   }
 
   bool placeBlock(int row, int col) {
+    if (isGameOver) return false;
     final selectedShape = _selectedShape;
     if (selectedShape == null) return false;
 
@@ -108,6 +112,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   }
 
   bool trySelectTrayFromScreen(Offset screenPosition) {
+    if (isGameOver) return false;
     final currentLayout = layout;
     if (currentLayout == null) return false;
 
@@ -124,7 +129,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   Future<void> onLoad() async {
     await super.onLoad();
     layout = LayoutSystem.calculate(size);
-    _refillTray();
+    _startNewGame();
   }
 
   @override
@@ -133,9 +138,31 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     layout = LayoutSystem.calculate(size);
   }
 
-  void _refillTray() {
+  void _startNewGame() {
+    score = 0;
+    turn = 1;
+    isGameOver = false;
+    _refillTray(increaseTurn: false);
+  }
+
+  void _refillTray({required bool increaseTurn}) {
     trayBlocks = List<BlockShape?>.from(BlockCatalog.starterSet);
     selectedTrayIndex = trayBlocks.isNotEmpty ? 0 : null;
+    if (increaseTurn) {
+      turn += 1;
+    }
+    _evaluateGameOver();
+  }
+
+  void _evaluateGameOver() {
+    final hasPlayable = GameFlowSystem.hasAnyPlaceableShape(
+      board: board,
+      trayBlocks: trayBlocks,
+    );
+    isGameOver = !hasPlayable;
+    if (isGameOver) {
+      _clearDragState();
+    }
   }
 
   BlockShape? get _selectedShape {
@@ -155,13 +182,16 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     final next = trayBlocks.indexWhere((shape) => shape != null);
     selectedTrayIndex = next == -1 ? null : next;
     if (selectedTrayIndex == null) {
-      _refillTray();
+      _refillTray(increaseTurn: true);
+      return;
     }
+    _evaluateGameOver();
   }
 
   @override
   void onTapDown(TapDownEvent event) {
     super.onTapDown(event);
+    if (isGameOver) return;
 
     final screenPosition = Offset(
       event.localPosition.x,
@@ -175,6 +205,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   @override
   void onDragStart(DragStartEvent event) {
     super.onDragStart(event);
+    if (isGameOver) return;
 
     final screenPosition = Offset(
       event.localPosition.x,
@@ -192,6 +223,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   @override
   void onDragUpdate(DragUpdateEvent event) {
     super.onDragUpdate(event);
+    if (isGameOver) return;
     if (!_isDraggingBlock) return;
 
     _dragScreenPosition = Offset(
@@ -203,6 +235,10 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   @override
   void onDragEnd(DragEndEvent event) {
     super.onDragEnd(event);
+    if (isGameOver) {
+      _clearDragState();
+      return;
+    }
     _tryPlaceFromDrag();
     _clearDragState();
   }
@@ -242,6 +278,8 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
       canvas: canvas,
       layout: currentLayout,
       score: score,
+      turn: turn,
+      isGameOver: isGameOver,
       board: board,
       trayBlocks: trayBlocks,
       selectedTrayIndex: selectedTrayIndex,
@@ -261,6 +299,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   }
 
   bool get _dragCanPlace {
+    if (isGameOver) return false;
     final dragBoardPoint = _dragBoardPoint;
     if (dragBoardPoint == null) return false;
     final row = dragBoardPoint.y;
