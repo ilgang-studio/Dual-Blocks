@@ -29,6 +29,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     fullCols: {},
   );
   double _lineHighlightLeft = 0;
+  final math.Random _random = math.Random();
 
   final List<List<CellState>> board = List.generate(
     GameConstants.boardSize,
@@ -157,7 +158,10 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   }
 
   void _refillTray({required bool increaseTurn}) {
-    trayBlocks = List<BlockShape?>.from(BlockCatalog.starterSet);
+    trayBlocks = BlockCatalog.randomTray(
+      random: _random,
+      count: GameConstants.traySlotCount,
+    ).map<BlockShape?>((shape) => shape).toList(growable: false);
     selectedTrayIndex = trayBlocks.isNotEmpty ? 0 : null;
     if (increaseTurn) {
       turn += 1;
