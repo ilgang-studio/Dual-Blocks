@@ -10,7 +10,6 @@ import 'models/cell_state.dart';
 import 'models/fate_effect.dart';
 import 'models/game_layout.dart';
 import 'models/line_clear_result.dart';
-import 'systems/fate_system.dart';
 import 'systems/game_flow_system.dart';
 import 'systems/hand_generation_system.dart';
 import 'systems/layout_system.dart';
@@ -33,9 +32,9 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   );
   double _lineHighlightLeft = 0;
   final math.Random _random = math.Random();
-  int _clearStreak = 0;
-  int _noClearStreak = 0;
-  int _angelCharge = 0;
+  int _angelStack = 0;
+  int _devilStack = 0;
+  int _storedScore = 0;
   FateType? _activeFateType;
   String? _activeFateReason;
   double _fateBannerLeft = 0;
@@ -69,9 +68,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     );
     if (placed) {
       score += selectedShape.cells.length;
-      final clearedCellCount = _applyLineClear();
-      _updateClearStreak(clearedCellCount);
-      _applyFateByState(clearedCellCount: clearedCellCount);
+      _applyLineClear();
       _consumeSelectedTrayBlock();
     }
     return placed;
@@ -88,48 +85,57 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
       board: board,
       result: result,
     );
-    score += clearedCellCount * GameConstants.lineClearPointPerCell;
+    final clearScore = clearedCellCount * GameConstants.lineClearPointPerCell;
+    if (_angelStack > 0) {
+      final stored = (clearScore * GameConstants.angelStoreRatio).floor();
+      _storedScore += stored;
+      score += clearScore - stored;
+    } else {
+      score += clearScore;
+    }
     return clearedCellCount;
   }
 
-  void _updateClearStreak(int clearedCellCount) {
-    if (clearedCellCount > 0) {
-      _clearStreak += 1;
-      _noClearStreak = 0;
-      return;
+  void selectAngel() {
+    _angelStack += 1;
+    _devilStack = 0;
+    if (_angelStack >= GameConstants.fateTriggerStack) {
+      triggerAngel();
+      _angelStack = 0;
     }
-    _clearStreak = 0;
-    _noClearStreak += 1;
   }
 
-  void _applyFateByState({required int clearedCellCount}) {
-    final fillRatio = FateSystem.fillRatio(board);
-    final decision = FateSystem.evaluate(
-      clearedCellCount: clearedCellCount,
-      clearStreak: _clearStreak,
-      noClearStreak: _noClearStreak,
-      fillRatio: fillRatio,
-    );
-    if (decision == null) return;
-
-    _activeFateType = decision.type;
-    _activeFateReason = decision.reason;
-    _fateBannerLeft = GameConstants.fateBannerSeconds;
-
-    if (decision.type == FateType.angel) {
-      _angelCharge += GameConstants.angelChargePerTrigger;
-      debugPrint(
-        '[FATE][Turn $turn] ANGEL triggered: ${decision.reason}, charge=$_angelCharge',
-      );
-      return;
+  void selectDevil() {
+    _devilStack += 1;
+    _angelStack = 0;
+    if (_devilStack >= GameConstants.fateTriggerStack) {
+      triggerDevil();
+      _devilStack = 0;
     }
+  }
 
-    // Devil effect: immediate reward + immediate risk.
-    score += GameConstants.devilScoreBonus;
-    _fillRandomEmptyCells(GameConstants.devilSpawnCount);
-    debugPrint(
-      '[FATE][Turn $turn] DEVIL triggered: ${decision.reason}, +${GameConstants.devilScoreBonus} score & +${GameConstants.devilSpawnCount} blocks',
-    );
+  void triggerAngel() {
+    final payout = _storedScore;
+    score += payout;
+    _storedScore = 0;
+    _fillRandomEmptyCells(GameConstants.angelFillEmptyCount);
+    _showFateBanner(FateType.angel, 'Stored score released + board aid');
+    debugPrint('[Angel Triggered] +$payout');
+    _evaluateGameOver();
+  }
+
+  void triggerDevil() {
+    _clearRandomLine();
+    score = (score * (1 - GameConstants.devilScorePenaltyRatio)).toInt();
+    _showFateBanner(FateType.devil, 'Random line clear, -10% score');
+    debugPrint('[Devil Triggered] -10%');
+    _evaluateGameOver();
+  }
+
+  void _showFateBanner(FateType type, String reason) {
+    _activeFateType = type;
+    _activeFateReason = reason;
+    _fateBannerLeft = GameConstants.fateBannerSeconds;
   }
 
   void _fillRandomEmptyCells(int count) {
@@ -149,28 +155,24 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     }
   }
 
-  void _clearRandomFilledCells(int count) {
-    final filled = <math.Point<int>>[];
-    for (var row = 0; row < board.length; row++) {
-      for (var col = 0; col < board[row].length; col++) {
-        if (board[row][col] == CellState.filled) {
-          filled.add(math.Point<int>(col, row));
-        }
-      }
-    }
-    filled.shuffle(_random);
-    final target = count.clamp(0, filled.length);
-    for (var i = 0; i < target; i++) {
-      final point = filled[i];
-      board[point.y][point.x] = CellState.empty;
-    }
-  }
+  void _clearRandomLine() {
+    final rowCount = board.length;
+    if (rowCount == 0) return;
+    final colCount = board.first.length;
+    final clearRow = _random.nextBool();
 
-  void _applyAngelAidAtTurnStart() {
-    if (_angelCharge <= 0) return;
-    _clearRandomFilledCells(1);
-    _angelCharge -= 1;
-    debugPrint('[FATE][Turn $turn] ANGEL aid consumed, charge=$_angelCharge');
+    if (clearRow) {
+      final row = _random.nextInt(rowCount);
+      for (var col = 0; col < colCount; col++) {
+        board[row][col] = CellState.empty;
+      }
+      return;
+    }
+
+    final col = _random.nextInt(colCount);
+    for (var row = 0; row < rowCount; row++) {
+      board[row][col] = CellState.empty;
+    }
   }
 
   math.Point<int>? screenToBoard(Offset p) {
@@ -237,9 +239,9 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     score = 0;
     turn = 1;
     isGameOver = false;
-    _clearStreak = 0;
-    _noClearStreak = 0;
-    _angelCharge = 0;
+    _angelStack = 0;
+    _devilStack = 0;
+    _storedScore = 0;
     _activeFateType = null;
     _activeFateReason = null;
     _fateBannerLeft = 0;
@@ -266,7 +268,6 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     selectedTrayIndex = trayBlocks.isNotEmpty ? 0 : null;
     if (increaseTurn) {
       turn += 1;
-      _applyAngelAidAtTurnStart();
     }
     _evaluateGameOver();
   }
@@ -378,12 +379,12 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   @override
   void update(double dt) {
     super.update(dt);
-    if (_lineHighlightLeft <= 0) return;
-
-    _lineHighlightLeft -= dt;
-    if (_lineHighlightLeft <= 0) {
-      _lineHighlightLeft = 0;
-      _lastClearResult = const LineClearResult(fullRows: {}, fullCols: {});
+    if (_lineHighlightLeft > 0) {
+      _lineHighlightLeft -= dt;
+      if (_lineHighlightLeft <= 0) {
+        _lineHighlightLeft = 0;
+        _lastClearResult = const LineClearResult(fullRows: {}, fullCols: {});
+      }
     }
 
     if (_fateBannerLeft > 0) {
@@ -421,7 +422,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
       fateType: _activeFateType,
       fateReason: _activeFateReason,
       showFateBanner: _fateBannerLeft > 0,
-      angelCharge: _angelCharge,
+      angelCharge: _angelStack,
     );
   }
 
@@ -439,4 +440,8 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     final col = dragBoardPoint.x;
     return canPlace(row, col);
   }
+
+  int get angelStack => _angelStack;
+  int get devilStack => _devilStack;
+  int get storedScore => _storedScore;
 }

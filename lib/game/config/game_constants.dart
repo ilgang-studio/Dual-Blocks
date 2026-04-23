@@ -27,8 +27,9 @@ class GameConstants {
 
   static const int lineClearPointPerCell = 2;
   static const double lineClearHighlightSeconds = 0.22;
-  static const int angelChargePerTrigger = 2;
-  static const int devilScoreBonus = 5;
-  static const int devilSpawnCount = 2;
+  static const int fateTriggerStack = 3;
+  static const double angelStoreRatio = 0.5;
+  static const int angelFillEmptyCount = 2;
+  static const double devilScorePenaltyRatio = 0.1;
   static const double fateBannerSeconds = 1.4;
 }
