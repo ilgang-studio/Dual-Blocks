@@ -14,20 +14,6 @@ void _drawHeader({
   required BlockThemeMode themeMode,
 }) {
   _drawScorePanelBackground(canvas, layout);
-  _drawHeaderStackDots(
-    canvas: canvas,
-    layout: layout,
-    stack: angelStack,
-    isAngel: true,
-    effectTime: effectTime,
-  );
-  _drawHeaderStackDots(
-    canvas: canvas,
-    layout: layout,
-    stack: devilStack,
-    isAngel: false,
-    effectTime: effectTime,
-  );
 
   final neonPulse = (math.sin(effectTime * 8.5) + 1) / 2;
   final isComboActive = comboCount > 0;
@@ -40,12 +26,80 @@ void _drawHeader({
       : const Color(0xFFE2E8F0);
   final glowAlpha = isComboActive ? 0.45 + (neonPulse * 0.45) : 0.0;
 
+  final topLabelPainter = TextPainter(
+    text: const TextSpan(
+      text: '최대점수',
+      style: TextStyle(
+        color: Color(0xFF94A3B8),
+        fontSize: 10,
+        fontWeight: FontWeight.w800,
+      ),
+    ),
+    textDirection: TextDirection.ltr,
+  )..layout();
+  topLabelPainter.paint(
+    canvas,
+    Offset(layout.scoreRect.left + 28, layout.scoreRect.top + 8),
+  );
+
+  final bestScorePainter = TextPainter(
+    text: TextSpan(
+      text: '$score',
+      style: const TextStyle(
+        color: Color(0xFFE2E8F0),
+        fontSize: 14,
+        fontWeight: FontWeight.w900,
+      ),
+    ),
+    textDirection: TextDirection.ltr,
+  )..layout();
+  bestScorePainter.paint(
+    canvas,
+    Offset(layout.scoreRect.left + 28, layout.scoreRect.top + 20),
+  );
+
+  final crownPainter = TextPainter(
+    text: const TextSpan(
+      text: 'TOP',
+      style: TextStyle(
+        color: Color(0xFFFDE68A),
+        fontSize: 9,
+        fontWeight: FontWeight.w900,
+      ),
+    ),
+    textDirection: TextDirection.ltr,
+  )..layout();
+  crownPainter.paint(
+    canvas,
+    Offset(layout.scoreRect.left + 8, layout.scoreRect.top + 16),
+  );
+
+  final centerTitlePainter = TextPainter(
+    text: const TextSpan(
+      text: '현재 점수',
+      style: TextStyle(
+        color: Color(0xFFE2E8F0),
+        fontSize: 11,
+        fontWeight: FontWeight.w800,
+        letterSpacing: 0.6,
+      ),
+    ),
+    textDirection: TextDirection.ltr,
+  )..layout();
+  centerTitlePainter.paint(
+    canvas,
+    Offset(
+      layout.scoreRect.center.dx - (centerTitlePainter.width / 2),
+      layout.scoreRect.top + 8,
+    ),
+  );
+
   final scorePainter = TextPainter(
     text: TextSpan(
       text: '$score',
       style: TextStyle(
         color: scoreColor,
-        fontSize: 40,
+        fontSize: 30,
         fontWeight: FontWeight.w900,
         letterSpacing: 1.0,
         shadows: [
@@ -67,7 +121,7 @@ void _drawHeader({
     canvas,
     Offset(
       layout.scoreRect.center.dx - (scorePainter.width / 2),
-      layout.scoreRect.top + 12,
+      layout.scoreRect.top + 20,
     ),
   );
 
@@ -76,7 +130,7 @@ void _drawHeader({
       text: 'TURN $turn   |   STORED $storedScore',
       style: const TextStyle(
         color: Color(0xFF94A3B8),
-        fontSize: 10,
+        fontSize: 9,
         fontWeight: FontWeight.w700,
         letterSpacing: 0.8,
       ),
@@ -88,7 +142,7 @@ void _drawHeader({
     canvas,
     Offset(
       layout.scoreRect.center.dx - (metaPainter.width / 2),
-      layout.scoreRect.bottom - metaPainter.height - 6,
+      layout.scoreRect.bottom - metaPainter.height - 4,
     ),
   );
 
@@ -118,10 +172,60 @@ void _drawHeader({
       canvas,
       Offset(
         layout.scoreRect.center.dx - (comboPainter.width / 2),
-        layout.scoreRect.top + 4,
+        layout.scoreRect.top + 45,
       ),
     );
   }
+
+  final leftGhostPainter = TextPainter(
+    text: const TextSpan(
+      text: 'Fra...',
+      style: TextStyle(
+        color: Color(0xFF94A3B8),
+        fontSize: 10,
+        fontWeight: FontWeight.w700,
+      ),
+    ),
+    textDirection: TextDirection.ltr,
+  )..layout();
+  leftGhostPainter.paint(
+    canvas,
+    Offset(layout.scoreRect.left + 10, layout.scoreRect.top + 40),
+  );
+
+  final rightGhostPainter = TextPainter(
+    text: const TextSpan(
+      text: 'Fra...',
+      style: TextStyle(
+        color: Color(0xFF94A3B8),
+        fontSize: 10,
+        fontWeight: FontWeight.w700,
+      ),
+    ),
+    textDirection: TextDirection.ltr,
+  )..layout();
+  rightGhostPainter.paint(
+    canvas,
+    Offset(
+      layout.scoreRect.right - rightGhostPainter.width - 34,
+      layout.scoreRect.top + 40,
+    ),
+  );
+
+  _drawHeaderStackDots(
+    canvas: canvas,
+    layout: layout,
+    stack: angelStack,
+    isAngel: true,
+    effectTime: effectTime,
+  );
+  _drawHeaderStackDots(
+    canvas: canvas,
+    layout: layout,
+    stack: devilStack,
+    isAngel: false,
+    effectTime: effectTime,
+  );
 
   _drawSettingsButton(canvas: canvas, layout: layout, isOpen: showThemeMenu);
   if (showThemeMenu) {
@@ -137,13 +241,13 @@ void _drawHeaderStackDots({
   required double effectTime,
 }) {
   final safeStack = stack.clamp(0, 3);
-  final x = isAngel ? layout.scoreRect.left + 20 : layout.scoreRect.right - 20;
-  final spacing = layout.scoreRect.height / 3.4;
-  final baseY = layout.scoreRect.center.dy - spacing;
+  final x = isAngel ? layout.scoreRect.left + 20 : layout.scoreRect.right - 34;
+  const spacing = 19.0;
+  final baseY = layout.scoreRect.top + 54;
   final ringColor = isAngel ? const Color(0xFF67E8F9) : const Color(0xFFB91C1C);
   final fillColor = isAngel ? const Color(0xFF22D3EE) : const Color(0xFFEF4444);
   final pulse = (math.sin(effectTime * 7.0) + 1) / 2;
-  final radius = 7.0;
+  final radius = 6.0;
 
   final ringPaint = isAngel
       ? DualBlocksRenderer._headerAngelRingPaint
@@ -198,25 +302,7 @@ void _drawSettingsButton({
     border,
   );
 
-  final iconPainter = TextPainter(
-    text: const TextSpan(
-      text: 'SET',
-      style: TextStyle(
-        color: Color(0xFFE2E8F0),
-        fontSize: 10,
-        fontWeight: FontWeight.w700,
-      ),
-    ),
-    textDirection: TextDirection.ltr,
-  )..layout();
-
-  iconPainter.paint(
-    canvas,
-    Offset(
-      rect.center.dx - (iconPainter.width / 2),
-      rect.center.dy - (iconPainter.height / 2),
-    ),
-  );
+  _drawGearIcon(canvas, rect.center, const Color(0xFFE2E8F0));
 }
 
 void _drawThemeMenu({
@@ -268,6 +354,30 @@ void _drawThemeMenu({
       Offset(rect.left + 8, rect.center.dy - (textPainter.height / 2)),
     );
   }
+}
+
+void _drawGearIcon(Canvas canvas, Offset center, Color color) {
+  final stroke = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 1.8
+    ..color = color;
+
+  const outer = 6.0;
+  for (var i = 0; i < 8; i++) {
+    final angle = (math.pi / 4) * i;
+    final start = Offset(
+      center.dx + math.cos(angle) * (outer + 1.6),
+      center.dy + math.sin(angle) * (outer + 1.6),
+    );
+    final end = Offset(
+      center.dx + math.cos(angle) * (outer + 3.8),
+      center.dy + math.sin(angle) * (outer + 3.8),
+    );
+    canvas.drawLine(start, end, stroke);
+  }
+
+  canvas.drawCircle(center, outer, stroke);
+  canvas.drawCircle(center, 2.3, stroke);
 }
 
 void _drawScorePopup({
