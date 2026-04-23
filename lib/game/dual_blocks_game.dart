@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
@@ -11,6 +12,7 @@ import 'models/fate_effect.dart';
 import 'models/game_layout.dart';
 import 'models/line_clear_result.dart';
 import 'systems/alignment_turn_system.dart';
+import 'systems/devil_block_system.dart';
 import 'systems/game_flow_system.dart';
 import 'systems/hand_generation_system.dart';
 import 'systems/layout_system.dart';
@@ -41,6 +43,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   int _storedScore = 0;
   double _nextClearScoreMultiplier = 1.0;
   bool _angelEasyHandBoostPending = false;
+  _DevilGiftType? _pendingDevilGift;
   FateType? _selectedFate;
   FateType? _activeFateType;
   String? _activeFateReason;
@@ -95,11 +98,13 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
       result: result,
     );
     final clearScore = clearedCellCount * GameConstants.lineClearPointPerCell;
+
     var scoredClear = clearScore;
     if (_nextClearScoreMultiplier > 1.0) {
       scoredClear = (clearScore * _nextClearScoreMultiplier).round();
       _nextClearScoreMultiplier = 1.0;
     }
+
     if (_angelStack > 0) {
       final stored = (scoredClear * GameConstants.angelStoreRatio).floor();
       _storedScore += stored;
@@ -158,10 +163,17 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   }
 
   void triggerDevil() {
-    _clearRandomLine();
+    _pendingDevilGift = _random.nextBool()
+        ? _DevilGiftType.greedBestBlock
+        : _DevilGiftType.destructionAid;
+
     score = (score * (1 - GameConstants.devilScorePenaltyRatio)).toInt();
-    _showFateBanner(FateType.devil, 'Random line clear, -10% score');
-    debugPrint('[Devil Triggered] -10%');
+
+    final summary = _pendingDevilGift == _DevilGiftType.greedBestBlock
+        ? 'Greed: next hand gets best block'
+        : 'Destruction: next hand gets escape block';
+    _showFateBanner(FateType.devil, '$summary, -10% score');
+    debugPrint('[Devil Triggered] $summary');
     _evaluateGameOver();
   }
 
@@ -223,26 +235,6 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     final row = occupiedRows[_random.nextInt(occupiedRows.length)];
     board[row][col] = CellState.empty;
     return 1;
-  }
-
-  void _clearRandomLine() {
-    final rowCount = board.length;
-    if (rowCount == 0) return;
-    final colCount = board.first.length;
-    final clearRow = _random.nextBool();
-
-    if (clearRow) {
-      final row = _random.nextInt(rowCount);
-      for (var col = 0; col < colCount; col++) {
-        board[row][col] = CellState.empty;
-      }
-      return;
-    }
-
-    final col = _random.nextInt(colCount);
-    for (var row = 0; row < rowCount; row++) {
-      board[row][col] = CellState.empty;
-    }
   }
 
   math.Point<int>? screenToBoard(Offset p) {
@@ -320,6 +312,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     _storedScore = 0;
     _nextClearScoreMultiplier = 1.0;
     _angelEasyHandBoostPending = false;
+    _pendingDevilGift = null;
     _activeFateType = null;
     _activeFateReason = null;
     _fateBannerLeft = 0;
@@ -399,6 +392,8 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
       weightResolver: useAngelHandRefine ? _angelRefinedWeight : null,
     ).map<BlockShape?>((shape) => shape).toList(growable: false);
     _angelEasyHandBoostPending = false;
+    _applyPendingDevilGift();
+
     trayFates = List<FateType?>.filled(GameConstants.traySlotCount, null);
     selectedTrayIndex = trayBlocks.isNotEmpty ? 0 : null;
     _selectedFate = selectedTrayIndex == null
@@ -416,6 +411,36 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
 
   bool _isEasyShape(BlockShape shape) {
     return shape.cells.length <= 3;
+  }
+
+  void _applyPendingDevilGift() {
+    final pendingGift = _pendingDevilGift;
+    if (pendingGift == null) return;
+    if (trayBlocks.isEmpty) {
+      _pendingDevilGift = null;
+      return;
+    }
+
+    final replaceIndex = _random.nextInt(trayBlocks.length);
+    if (pendingGift == _DevilGiftType.greedBestBlock) {
+      final best = DevilBlockSystem.findBestBlock(
+        board: board,
+        blockPool: BlockCatalog.pool,
+      );
+      if (best != null) {
+        trayBlocks[replaceIndex] = best;
+      }
+    } else {
+      final aid = DevilBlockSystem.pickDestructionAidBlock(
+        board: board,
+        blockPool: BlockCatalog.pool,
+      );
+      if (aid != null) {
+        trayBlocks[replaceIndex] = aid;
+      }
+    }
+
+    _pendingDevilGift = null;
   }
 
   void _buildAlignmentTray() {
@@ -468,7 +493,6 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     }
 
     final screenPosition = Offset(event.localPosition.x, event.localPosition.y);
-
     final selected = trySelectTrayFromScreen(screenPosition);
     if (selected) return;
   }
@@ -479,7 +503,6 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     if (isGameOver) return;
 
     final screenPosition = Offset(event.localPosition.x, event.localPosition.y);
-
     final selected = trySelectTrayFromScreen(screenPosition);
     if (!selected) return;
 
@@ -615,3 +638,5 @@ class _LineTarget {
   factory _LineTarget.row(int row) => _LineTarget._(_LineAxis.row, row);
   factory _LineTarget.col(int col) => _LineTarget._(_LineAxis.col, col);
 }
+
+enum _DevilGiftType { greedBestBlock, destructionAid }
