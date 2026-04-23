@@ -13,6 +13,7 @@ import 'models/game_layout.dart';
 import 'models/line_clear_result.dart';
 import 'systems/alignment_turn_system.dart';
 import 'systems/devil_block_system.dart';
+import 'systems/fate_effect_system.dart';
 import 'systems/game_flow_system.dart';
 import 'systems/hand_generation_system.dart';
 import 'systems/layout_system.dart';
@@ -190,11 +191,10 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   }
 
   void triggerDevil() {
-    final selectedGift =
-        _selectedDevilGift ??
-        (_random.nextBool()
-            ? DevilGiftType.greedBestBlock
-            : DevilGiftType.destructionAid);
+    final selectedGift = FateEffectSystem.chooseDevilGiftType(
+      random: _random,
+      preferred: _selectedDevilGift,
+    );
     _selectedDevilGift = null;
 
     score = (score * (1 - GameConstants.devilScorePenaltyRatio)).toInt();
@@ -221,56 +221,12 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   }
 
   int _rescueCleanup() {
-    _LineTarget? bestTarget;
-    var bestOccupiedCount = 0;
-
-    for (var row = 0; row < board.length; row++) {
-      var occupied = 0;
-      for (var col = 0; col < board[row].length; col++) {
-        if (board[row][col].isOccupied) occupied += 1;
-      }
-      if (occupied <= 0 || occupied >= GameConstants.boardSize) continue;
-      if (occupied > bestOccupiedCount) {
-        bestOccupiedCount = occupied;
-        bestTarget = _LineTarget.row(row);
-      }
-    }
-
-    for (var col = 0; col < GameConstants.boardSize; col++) {
-      var occupied = 0;
-      for (var row = 0; row < GameConstants.boardSize; row++) {
-        if (board[row][col].isOccupied) occupied += 1;
-      }
-      if (occupied <= 0 || occupied >= GameConstants.boardSize) continue;
-      if (occupied > bestOccupiedCount) {
-        bestOccupiedCount = occupied;
-        bestTarget = _LineTarget.col(col);
-      }
-    }
-
-    final target = bestTarget;
+    final target = FateEffectSystem.findRescueCleanupCell(
+      board: board,
+      random: _random,
+    );
     if (target == null) return 0;
-
-    if (target.axis == _LineAxis.row) {
-      final row = target.index;
-      final occupiedCols = <int>[];
-      for (var col = 0; col < GameConstants.boardSize; col++) {
-        if (board[row][col].isOccupied) occupiedCols.add(col);
-      }
-      if (occupiedCols.isEmpty) return 0;
-      final col = occupiedCols[_random.nextInt(occupiedCols.length)];
-      _queueFateRemoval([math.Point<int>(col, row)], FateType.angel);
-      return 1;
-    }
-
-    final col = target.index;
-    final occupiedRows = <int>[];
-    for (var row = 0; row < GameConstants.boardSize; row++) {
-      if (board[row][col].isOccupied) occupiedRows.add(row);
-    }
-    if (occupiedRows.isEmpty) return 0;
-    final row = occupiedRows[_random.nextInt(occupiedRows.length)];
-    _queueFateRemoval([math.Point<int>(col, row)], FateType.angel);
+    _queueFateRemoval([target], FateType.angel);
     return 1;
   }
 
@@ -760,22 +716,14 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   }
 
   int _queueDevilDestructionRemoval(int targetCount) {
-    final occupied = <math.Point<int>>[];
-    for (var row = 0; row < GameConstants.boardSize; row++) {
-      for (var col = 0; col < GameConstants.boardSize; col++) {
-        if (board[row][col].isOccupied) {
-          occupied.add(math.Point<int>(col, row));
-        }
-      }
-    }
-    if (occupied.isEmpty) return 0;
-    occupied.shuffle(_random);
-    final count = targetCount.clamp(1, occupied.length);
-    _queueFateRemoval(
-      occupied.take(count).toList(growable: false),
-      FateType.devil,
+    final picked = FateEffectSystem.pickDestructionCells(
+      board: board,
+      random: _random,
+      targetCount: targetCount,
     );
-    return count;
+    if (picked.isEmpty) return 0;
+    _queueFateRemoval(picked, FateType.devil);
+    return picked.length;
   }
 
   void _resolvePendingLineClear() {
@@ -812,16 +760,4 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   void _triggerPlaceFailFeedback() {
     // Placement fail flash disabled by request.
   }
-}
-
-enum _LineAxis { row, col }
-
-class _LineTarget {
-  const _LineTarget._(this.axis, this.index);
-
-  final _LineAxis axis;
-  final int index;
-
-  factory _LineTarget.row(int row) => _LineTarget._(_LineAxis.row, row);
-  factory _LineTarget.col(int col) => _LineTarget._(_LineAxis.col, col);
 }
