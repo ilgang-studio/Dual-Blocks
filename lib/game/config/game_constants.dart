@@ -21,4 +21,6 @@ class GameConstants {
   static const Color scoreBackground = Color(0xFF111827);
   static const Color traySlotBackground = Color(0xFF1F2937);
   static const Color traySlotSelected = Color(0xFF60A5FA);
+
+  static const int lineClearPointPerCell = 2;
 }

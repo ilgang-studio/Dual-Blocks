@@ -50,4 +50,23 @@ void main() {
       expect(board[row][2], CellState.empty);
     }
   });
+
+  test('does not clear when there is no full row or column', () {
+    final board = boardOf(4);
+    board[0][0] = CellState.filled;
+    board[1][1] = CellState.filled;
+    board[2][2] = CellState.filled;
+
+    final result = LineClearSystem.findFilledLines(board);
+    final clearedCount = LineClearSystem.clearFilledLines(
+      board: board,
+      result: result,
+    );
+
+    expect(result.hasAny, isFalse);
+    expect(clearedCount, 0);
+    expect(board[0][0], CellState.filled);
+    expect(board[1][1], CellState.filled);
+    expect(board[2][2], CellState.filled);
+  });
 }

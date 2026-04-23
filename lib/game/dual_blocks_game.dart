@@ -9,6 +9,7 @@ import 'models/block_shape.dart';
 import 'models/cell_state.dart';
 import 'models/game_layout.dart';
 import 'systems/layout_system.dart';
+import 'systems/line_clear_system.dart';
 import 'systems/placement_system.dart';
 
 class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
@@ -48,9 +49,21 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     );
     if (placed) {
       score += selectedShape.cells.length;
+      _applyLineClear();
       _consumeSelectedTrayBlock();
     }
     return placed;
+  }
+
+  void _applyLineClear() {
+    final result = LineClearSystem.findFilledLines(board);
+    if (!result.hasAny) return;
+
+    final clearedCellCount = LineClearSystem.clearFilledLines(
+      board: board,
+      result: result,
+    );
+    score += clearedCellCount * GameConstants.lineClearPointPerCell;
   }
 
   math.Point<int>? screenToBoard(Offset p) {
