@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+enum AngelEffectMode { rescueCleanup, scoreShield, handRefine }
+
 class GameConstants {
   static const int boardSize = 8;
 
@@ -29,7 +31,10 @@ class GameConstants {
   static const double lineClearHighlightSeconds = 0.22;
   static const int fateTriggerStack = 3;
   static const double angelStoreRatio = 0.5;
-  static const int angelFillEmptyCount = 2;
+  static const AngelEffectMode angelEffectMode = AngelEffectMode.rescueCleanup;
+  static const double angelNextClearScoreMultiplier = 1.5;
+  static const double angelEasyWeightMultiplier = 1.35;
+  static const double angelHardWeightMultiplier = 0.65;
   static const double devilScorePenaltyRatio = 0.1;
   static const double fateBannerSeconds = 1.4;
 }

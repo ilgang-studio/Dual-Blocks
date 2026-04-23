@@ -39,6 +39,8 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   int _angelStack = 0;
   int _devilStack = 0;
   int _storedScore = 0;
+  double _nextClearScoreMultiplier = 1.0;
+  bool _angelEasyHandBoostPending = false;
   FateType? _selectedFate;
   FateType? _activeFateType;
   String? _activeFateReason;
@@ -93,12 +95,17 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
       result: result,
     );
     final clearScore = clearedCellCount * GameConstants.lineClearPointPerCell;
+    var scoredClear = clearScore;
+    if (_nextClearScoreMultiplier > 1.0) {
+      scoredClear = (clearScore * _nextClearScoreMultiplier).round();
+      _nextClearScoreMultiplier = 1.0;
+    }
     if (_angelStack > 0) {
-      final stored = (clearScore * GameConstants.angelStoreRatio).floor();
+      final stored = (scoredClear * GameConstants.angelStoreRatio).floor();
       _storedScore += stored;
-      score += clearScore - stored;
+      score += scoredClear - stored;
     } else {
-      score += clearScore;
+      score += scoredClear;
     }
     return clearedCellCount;
   }
@@ -127,9 +134,26 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     final payout = _storedScore;
     score += payout;
     _storedScore = 0;
-    _fillRandomEmptyCells(GameConstants.angelFillEmptyCount);
-    _showFateBanner(FateType.angel, 'Stored score released + board aid');
-    debugPrint('[Angel Triggered] +$payout');
+
+    var effectSummary = '';
+    switch (GameConstants.angelEffectMode) {
+      case AngelEffectMode.rescueCleanup:
+        final removed = _rescueCleanup();
+        effectSummary = 'Rescue cleanup removed $removed cell';
+        break;
+      case AngelEffectMode.scoreShield:
+        _nextClearScoreMultiplier = GameConstants.angelNextClearScoreMultiplier;
+        effectSummary =
+            'Next clear score x${GameConstants.angelNextClearScoreMultiplier.toStringAsFixed(1)}';
+        break;
+      case AngelEffectMode.handRefine:
+        _angelEasyHandBoostPending = true;
+        effectSummary = 'Next normal hand refined to easier blocks';
+        break;
+    }
+
+    _showFateBanner(FateType.angel, 'Stored +$payout, $effectSummary');
+    debugPrint('[Angel Triggered] payout=$payout effect=$effectSummary');
     _evaluateGameOver();
   }
 
@@ -147,21 +171,58 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     _fateBannerLeft = GameConstants.fateBannerSeconds;
   }
 
-  void _fillRandomEmptyCells(int count) {
-    final empty = <math.Point<int>>[];
+  int _rescueCleanup() {
+    _LineTarget? bestTarget;
+    var bestOccupiedCount = 0;
+
     for (var row = 0; row < board.length; row++) {
+      var occupied = 0;
       for (var col = 0; col < board[row].length; col++) {
-        if (board[row][col] == CellState.empty) {
-          empty.add(math.Point<int>(col, row));
-        }
+        if (board[row][col].isOccupied) occupied += 1;
+      }
+      if (occupied <= 0 || occupied >= GameConstants.boardSize) continue;
+      if (occupied > bestOccupiedCount) {
+        bestOccupiedCount = occupied;
+        bestTarget = _LineTarget.row(row);
       }
     }
-    empty.shuffle(_random);
-    final target = count.clamp(0, empty.length);
-    for (var i = 0; i < target; i++) {
-      final point = empty[i];
-      board[point.y][point.x] = CellState.filled;
+
+    for (var col = 0; col < GameConstants.boardSize; col++) {
+      var occupied = 0;
+      for (var row = 0; row < GameConstants.boardSize; row++) {
+        if (board[row][col].isOccupied) occupied += 1;
+      }
+      if (occupied <= 0 || occupied >= GameConstants.boardSize) continue;
+      if (occupied > bestOccupiedCount) {
+        bestOccupiedCount = occupied;
+        bestTarget = _LineTarget.col(col);
+      }
     }
+
+    final target = bestTarget;
+    if (target == null) return 0;
+
+    if (target.axis == _LineAxis.row) {
+      final row = target.index;
+      final occupiedCols = <int>[];
+      for (var col = 0; col < GameConstants.boardSize; col++) {
+        if (board[row][col].isOccupied) occupiedCols.add(col);
+      }
+      if (occupiedCols.isEmpty) return 0;
+      final col = occupiedCols[_random.nextInt(occupiedCols.length)];
+      board[row][col] = CellState.empty;
+      return 1;
+    }
+
+    final col = target.index;
+    final occupiedRows = <int>[];
+    for (var row = 0; row < GameConstants.boardSize; row++) {
+      if (board[row][col].isOccupied) occupiedRows.add(row);
+    }
+    if (occupiedRows.isEmpty) return 0;
+    final row = occupiedRows[_random.nextInt(occupiedRows.length)];
+    board[row][col] = CellState.empty;
+    return 1;
   }
 
   void _clearRandomLine() {
@@ -257,6 +318,8 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     _angelStack = 0;
     _devilStack = 0;
     _storedScore = 0;
+    _nextClearScoreMultiplier = 1.0;
+    _angelEasyHandBoostPending = false;
     _activeFateType = null;
     _activeFateReason = null;
     _fateBannerLeft = 0;
@@ -327,16 +390,32 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   }
 
   void _buildNormalTray() {
+    final useAngelHandRefine = _angelEasyHandBoostPending;
     trayBlocks = HandGenerationSystem.generateHand(
       board,
       random: _random,
       blockPool: BlockCatalog.pool,
       handSize: GameConstants.traySlotCount,
+      weightResolver: useAngelHandRefine ? _angelRefinedWeight : null,
     ).map<BlockShape?>((shape) => shape).toList(growable: false);
+    _angelEasyHandBoostPending = false;
     trayFates = List<FateType?>.filled(GameConstants.traySlotCount, null);
     selectedTrayIndex = trayBlocks.isNotEmpty ? 0 : null;
-    _selectedFate = selectedTrayIndex == null ? null : trayFates[selectedTrayIndex!];
+    _selectedFate = selectedTrayIndex == null
+        ? null
+        : trayFates[selectedTrayIndex!];
     _alignmentChoicePending = false;
+  }
+
+  double _angelRefinedWeight(BlockShape shape) {
+    final multiplier = _isEasyShape(shape)
+        ? GameConstants.angelEasyWeightMultiplier
+        : GameConstants.angelHardWeightMultiplier;
+    return shape.weight * multiplier;
+  }
+
+  bool _isEasyShape(BlockShape shape) {
+    return shape.cells.length <= 3;
   }
 
   void _buildAlignmentTray() {
@@ -388,10 +467,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
       return;
     }
 
-    final screenPosition = Offset(
-      event.localPosition.x,
-      event.localPosition.y,
-    );
+    final screenPosition = Offset(event.localPosition.x, event.localPosition.y);
 
     final selected = trySelectTrayFromScreen(screenPosition);
     if (selected) return;
@@ -402,10 +478,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     super.onDragStart(event);
     if (isGameOver) return;
 
-    final screenPosition = Offset(
-      event.localPosition.x,
-      event.localPosition.y,
-    );
+    final screenPosition = Offset(event.localPosition.x, event.localPosition.y);
 
     final selected = trySelectTrayFromScreen(screenPosition);
     if (!selected) return;
@@ -529,4 +602,16 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   int get angelStack => _angelStack;
   int get devilStack => _devilStack;
   int get storedScore => _storedScore;
+}
+
+enum _LineAxis { row, col }
+
+class _LineTarget {
+  const _LineTarget._(this.axis, this.index);
+
+  final _LineAxis axis;
+  final int index;
+
+  factory _LineTarget.row(int row) => _LineTarget._(_LineAxis.row, row);
+  factory _LineTarget.col(int col) => _LineTarget._(_LineAxis.col, col);
 }

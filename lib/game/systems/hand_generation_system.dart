@@ -10,6 +10,7 @@ class HandGenerationSystem {
     required math.Random random,
     required List<BlockShape> blockPool,
     int handSize = 3,
+    double Function(BlockShape shape)? weightResolver,
   }) {
     final selected = <BlockShape>[];
     final usedIds = <String>{};
@@ -26,7 +27,9 @@ class HandGenerationSystem {
       if (block.cells.length >= 4 && bigBlockCount >= 1) continue;
 
       final chance = random.nextDouble() * 10;
-      if (chance > block.weight) continue;
+      final effectiveWeight = (weightResolver?.call(block) ?? block.weight)
+          .clamp(0.0, 10.0);
+      if (chance > effectiveWeight) continue;
 
       selected.add(block);
       usedIds.add(block.id);
@@ -71,10 +74,7 @@ class HandGenerationSystem {
     return selected;
   }
 
-  static bool canPlaceAnywhere(
-    List<List<CellState>> board,
-    BlockShape block,
-  ) {
+  static bool canPlaceAnywhere(List<List<CellState>> board, BlockShape block) {
     for (var row = 0; row < board.length; row++) {
       for (var col = 0; col < board[row].length; col++) {
         if (PlacementSystem.canPlaceShape(
