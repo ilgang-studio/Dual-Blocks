@@ -177,41 +177,6 @@ void _drawHeader({
     );
   }
 
-  final leftGhostPainter = TextPainter(
-    text: const TextSpan(
-      text: 'Fra...',
-      style: TextStyle(
-        color: Color(0xFF94A3B8),
-        fontSize: 10,
-        fontWeight: FontWeight.w700,
-      ),
-    ),
-    textDirection: TextDirection.ltr,
-  )..layout();
-  leftGhostPainter.paint(
-    canvas,
-    Offset(layout.scoreRect.left + 10, layout.scoreRect.top + 40),
-  );
-
-  final rightGhostPainter = TextPainter(
-    text: const TextSpan(
-      text: 'Fra...',
-      style: TextStyle(
-        color: Color(0xFF94A3B8),
-        fontSize: 10,
-        fontWeight: FontWeight.w700,
-      ),
-    ),
-    textDirection: TextDirection.ltr,
-  )..layout();
-  rightGhostPainter.paint(
-    canvas,
-    Offset(
-      layout.scoreRect.right - rightGhostPainter.width - 34,
-      layout.scoreRect.top + 40,
-    ),
-  );
-
   _drawHeaderStackDots(
     canvas: canvas,
     layout: layout,
@@ -241,9 +206,11 @@ void _drawHeaderStackDots({
   required double effectTime,
 }) {
   final safeStack = stack.clamp(0, 3);
-  final x = isAngel ? layout.scoreRect.left + 20 : layout.scoreRect.right - 34;
   const spacing = 19.0;
   final baseY = layout.scoreRect.top + 54;
+  final startX = isAngel
+      ? layout.scoreRect.left + 20
+      : layout.scoreRect.right - 20 - (spacing * 2);
   final ringColor = isAngel ? const Color(0xFF67E8F9) : const Color(0xFFB91C1C);
   final fillColor = isAngel ? const Color(0xFF22D3EE) : const Color(0xFFEF4444);
   final pulse = (math.sin(effectTime * 7.0) + 1) / 2;
@@ -255,7 +222,7 @@ void _drawHeaderStackDots({
   ringPaint.color = ringColor.withValues(alpha: 0.95);
 
   for (var i = 0; i < 3; i++) {
-    final center = Offset(x, baseY + (i * spacing));
+    final center = Offset(startX + (i * spacing), baseY);
     canvas.drawCircle(center, radius, ringPaint);
     if (i < safeStack) {
       DualBlocksRenderer._headerDotFillPaint.color = fillColor.withValues(

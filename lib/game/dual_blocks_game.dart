@@ -58,6 +58,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   int _devilStack = 0;
   int _storedScore = 0;
   int _comboCount = 0;
+  int _comboMissStreak = 0;
   double _nextClearScoreMultiplier = 1.0;
   bool _angelEasyHandBoostPending = false;
   DevilGiftType? _pendingDevilGift;
@@ -122,7 +123,12 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   int _applyLineClear() {
     final result = LineClearSystem.findFilledLines(board);
     if (!result.hasAny) {
-      _comboCount = 0;
+      if (_comboCount > 0 && _comboMissStreak == 0) {
+        _comboMissStreak = 1;
+      } else {
+        _comboCount = 0;
+        _comboMissStreak = 0;
+      }
       return 0;
     }
 
@@ -137,6 +143,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
       comboCount: _comboCount,
       clearedLineCount: clearedLineCount,
     );
+    _comboMissStreak = 0;
     _comboCount += 1;
 
     var scoredClear = clearScore;
@@ -315,6 +322,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     _devilStack = 0;
     _storedScore = 0;
     _comboCount = 0;
+    _comboMissStreak = 0;
     _nextClearScoreMultiplier = 1.0;
     _angelEasyHandBoostPending = false;
     _pendingDevilGift = null;

@@ -10,7 +10,7 @@ class GameConstants {
   static const double trayHeight = 120;
   static const double sectionGap = 16;
   static const double scoreHeight = 72;
-  static const double scoreGapFromBoard = 86;
+  static const double scoreGapFromBoard = 98;
   static const double cornerRadius = 12;
   static const double outerBottomPadding = 16;
   static const int traySlotCount = 3;
