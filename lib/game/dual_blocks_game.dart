@@ -100,8 +100,6 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
       score += selectedShape.cells.length;
       _applyLineClear();
       _consumeSelectedTrayBlock();
-    } else {
-      _triggerPlaceFailFeedback();
     }
     return placed;
   }
@@ -237,21 +235,6 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     return currentLayout.screenToBoard(p);
   }
 
-  void tryPlaceFromScreen(Offset screenPosition) {
-    if (_pendingClearResult != null) return;
-    if (_pendingFateRemovalCells.isNotEmpty) return;
-    final boardPoint = screenToBoard(screenPosition);
-    if (boardPoint == null) return;
-
-    final col = boardPoint.x;
-    final row = boardPoint.y;
-    if (!canPlace(row, col)) {
-      _triggerPlaceFailFeedback();
-      return;
-    }
-    placeBlock(row, col);
-  }
-
   bool _tryPlaceFromDrag() {
     final draggingShape = _draggingShape;
     final screenPosition = _dragScreenPosition;
@@ -265,10 +248,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
 
     final col = boardPoint.x;
     final row = boardPoint.y;
-    if (!canPlace(row, col)) {
-      _triggerPlaceFailFeedback();
-      return false;
-    }
+    if (!canPlace(row, col)) return false;
     return placeBlock(row, col);
   }
 
@@ -705,10 +685,6 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     return CellState.filled;
   }
 
-  int get angelStack => _angelStack;
-  int get devilStack => _devilStack;
-  int get storedScore => _storedScore;
-
   void _queueFateRemoval(List<math.Point<int>> cells, FateType type) {
     if (cells.isEmpty) return;
     _pendingFateRemovalCells
@@ -758,9 +734,5 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     _pendingFateRemovalType = null;
     _fateRemovalLeft = 0;
     _evaluateGameOver();
-  }
-
-  void _triggerPlaceFailFeedback() {
-    // Placement fail flash disabled by request.
   }
 }
