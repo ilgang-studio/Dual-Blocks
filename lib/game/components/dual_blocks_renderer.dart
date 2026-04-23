@@ -96,6 +96,7 @@ class DualBlocksRenderer {
     required int angelStack,
     required int devilStack,
     required int storedScore,
+    required int comboCount,
     required int scorePopupValue,
     required double scorePopupProgress,
     required double placeSuccessProgress,
@@ -132,6 +133,7 @@ class DualBlocksRenderer {
     _drawScore(canvas, layout, score);
     _drawTurn(canvas, layout, turn);
     _drawStoredScore(canvas, layout, storedScore);
+    _drawCombo(canvas, layout, comboCount);
     _drawScorePopup(
       canvas: canvas,
       layout: layout,
@@ -277,6 +279,29 @@ class DualBlocksRenderer {
       Offset(
         layout.scoreRect.right - chargePainter.width - 12,
         layout.scoreRect.top + 8,
+      ),
+    );
+  }
+
+  static void _drawCombo(Canvas canvas, GameLayout layout, int comboCount) {
+    final isActive = comboCount > 0;
+    final comboPainter = TextPainter(
+      text: TextSpan(
+        text: isActive ? 'Combo x$comboCount' : 'Combo x0',
+        style: TextStyle(
+          color: isActive ? const Color(0xFFFDE68A) : const Color(0xFF94A3B8),
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+
+    comboPainter.paint(
+      canvas,
+      Offset(
+        layout.scoreRect.right - comboPainter.width - 12,
+        layout.scoreRect.top + 26,
       ),
     );
   }

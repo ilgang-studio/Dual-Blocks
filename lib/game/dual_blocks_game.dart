@@ -707,6 +707,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
       angelStack: _angelStack,
       devilStack: _devilStack,
       storedScore: _storedScore,
+      comboCount: _comboCount,
       scorePopupValue: _scorePopupValue,
       scorePopupProgress: _scorePopupLeft / GameConstants.scorePopupSeconds,
       placeSuccessProgress:
