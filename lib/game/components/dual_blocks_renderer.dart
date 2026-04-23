@@ -81,6 +81,11 @@ class DualBlocksRenderer {
     required int devilStack,
     required int storedScore,
   }) {
+    // Keep preview colors in sync with actual placed-cell colors even after hot reload.
+    _shapePreviewPaint.color = _cellFallbackPaint.color;
+    _shapePreviewAngelPaint.color = _angelCellPaint.color;
+    _shapePreviewDevilPaint.color = _devilCellPaint.color;
+
     _drawBoard(canvas, layout);
     _drawCells(canvas, layout, board);
     if (showClearHighlight) {
