@@ -90,8 +90,6 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     );
     if (placed) {
       score += selectedShape.cells.length;
-      _placeSuccessLeft = GameConstants.placementSuccessSeconds;
-      _placeFailLeft = 0;
       _applyLineClear();
       _consumeSelectedTrayBlock();
     } else {
@@ -755,8 +753,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   }
 
   void _triggerPlaceFailFeedback() {
-    _placeFailLeft = GameConstants.placementFailSeconds;
-    _placeSuccessLeft = 0;
+    // Placement fail flash disabled by request.
   }
 }
 
