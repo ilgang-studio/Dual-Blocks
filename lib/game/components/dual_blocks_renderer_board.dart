@@ -10,7 +10,13 @@ void _drawBoard(Canvas canvas, GameLayout layout) {
   );
 }
 
-void _drawCells(Canvas canvas, GameLayout layout, List<List<CellState>> board) {
+void _drawCells(
+  Canvas canvas,
+  GameLayout layout,
+  List<List<CellState>> board, {
+  required BlockThemeMode themeMode,
+  required double effectTime,
+}) {
   for (int row = 0; row < GameConstants.boardSize; row++) {
     for (int col = 0; col < GameConstants.boardSize; col++) {
       final rect = Rect.fromLTWH(
@@ -21,6 +27,12 @@ void _drawCells(Canvas canvas, GameLayout layout, List<List<CellState>> board) {
       );
 
       if (board[row][col] == CellState.filled) {
+        DualBlocksRenderer._cellFallbackPaint.color = _normalThemeColor(
+          mode: themeMode,
+          row: row,
+          col: col,
+          effectTime: effectTime,
+        );
         canvas.drawRect(rect, DualBlocksRenderer._cellFallbackPaint);
       }
       if (board[row][col] == CellState.angelFilled) {
@@ -30,6 +42,30 @@ void _drawCells(Canvas canvas, GameLayout layout, List<List<CellState>> board) {
         canvas.drawRect(rect, DualBlocksRenderer._devilCellPaint);
       }
     }
+  }
+}
+
+Color _normalThemeColor({
+  required BlockThemeMode mode,
+  required int row,
+  required int col,
+  required double effectTime,
+}) {
+  switch (mode) {
+    case BlockThemeMode.solid:
+      return GameConstants.normalBlockColor;
+    case BlockThemeMode.custom:
+      return const Color(0xFFF59E0B);
+    case BlockThemeMode.rainbow:
+      final palette = <Color>[
+        const Color(0xFF22D3EE),
+        const Color(0xFFA78BFA),
+        const Color(0xFFF59E0B),
+        const Color(0xFF34D399),
+        const Color(0xFFF472B6),
+      ];
+      final index = (row + col + (effectTime * 1.8).floor()) % palette.length;
+      return palette[index];
   }
 }
 

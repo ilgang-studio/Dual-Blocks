@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import 'block_shape.dart';
+import 'block_theme_mode.dart';
 import 'cell_state.dart';
 import 'fate_effect.dart';
 import 'game_layout.dart';
@@ -21,6 +22,8 @@ class RenderFrameData {
     required this.isAlignmentTurn,
     required this.alignmentChoicePending,
     required this.effectTime,
+    required this.themeMode,
+    required this.showThemeMenu,
     required this.dragShape,
     required this.dragScreenPosition,
     required this.dragCanPlace,
@@ -57,6 +60,8 @@ class RenderFrameData {
   final bool isAlignmentTurn;
   final bool alignmentChoicePending;
   final double effectTime;
+  final BlockThemeMode themeMode;
+  final bool showThemeMenu;
   final BlockShape? dragShape;
   final Offset? dragScreenPosition;
   final bool dragCanPlace;

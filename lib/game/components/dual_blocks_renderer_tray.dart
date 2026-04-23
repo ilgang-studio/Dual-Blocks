@@ -18,6 +18,7 @@ void _drawTraySlots(
   List<DevilGiftType?> trayDevilGifts,
   int? selectedTrayIndex,
   double effectTime,
+  BlockThemeMode themeMode,
 ) {
   final slotRects = layout.traySlotRects();
   for (var i = 0; i < slotRects.length; i++) {
@@ -59,6 +60,9 @@ void _drawTraySlots(
         shape,
         fate: slotFate,
         scale: selectedTrayIndex == i ? 1.08 : 1.0,
+        themeMode: themeMode,
+        effectTime: effectTime,
+        slotIndex: i,
       );
     }
 
@@ -204,6 +208,9 @@ void _drawShapePreview(
   BlockShape shape, {
   FateType? fate,
   double scale = 1.0,
+  required BlockThemeMode themeMode,
+  required double effectTime,
+  required int slotIndex,
 }) {
   var previewBounds = _shapePreviewBounds(slotRect, shape);
   if (scale != 1.0) {
@@ -236,6 +243,13 @@ void _drawShapePreview(
   for (final point in points) {
     final left = originX + ((point.x - minX) * cellSize);
     final top = originY + ((point.y - minY) * cellSize);
+    final themedColor = _normalThemeColor(
+      mode: themeMode,
+      row: point.y + slotIndex,
+      col: point.x + slotIndex,
+      effectTime: effectTime,
+    );
+    DualBlocksRenderer._shapePreviewPaint.color = themedColor;
     final paint = fate == FateType.angel
         ? DualBlocksRenderer._shapePreviewAngelPaint
         : fate == FateType.devil

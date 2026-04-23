@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'components/dual_blocks_renderer.dart';
 import 'config/game_constants.dart';
 import 'models/block_shape.dart';
+import 'models/block_theme_mode.dart';
 import 'models/cell_state.dart';
 import 'models/fate_effect.dart';
 import 'models/game_layout.dart';
@@ -66,6 +67,8 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   FateType? _activeFateType;
   String? _activeFateReason;
   double _fateBannerLeft = 0;
+  BlockThemeMode _themeMode = BlockThemeMode.solid;
+  bool _showThemeMenu = false;
   final AlignmentTurnSystem _alignmentTurnSystem = AlignmentTurnSystem();
 
   final List<List<CellState>> board = List.generate(
@@ -320,6 +323,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     _activeFateType = null;
     _activeFateReason = null;
     _fateBannerLeft = 0;
+    _showThemeMenu = false;
     _alignmentTurnSystem.turnCounter = 1;
     _refillTray(increaseTurn: false);
   }
@@ -535,6 +539,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     }
 
     final screenPosition = Offset(event.localPosition.x, event.localPosition.y);
+    if (_handleThemeTap(screenPosition)) return;
     final selected = trySelectTrayFromScreen(screenPosition);
     if (selected) return;
   }
@@ -543,6 +548,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   void onDragStart(DragStartEvent event) {
     super.onDragStart(event);
     if (isGameOver) return;
+    if (_showThemeMenu) return;
     if (_pendingClearResult != null) return;
     if (_pendingFateRemovalCells.isNotEmpty) return;
 
@@ -664,6 +670,8 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
         isAlignmentTurn: isAlignmentTurn,
         alignmentChoicePending: _alignmentChoicePending,
         effectTime: _effectTime,
+        themeMode: _themeMode,
+        showThemeMenu: _showThemeMenu,
         dragShape: _draggingShape,
         dragScreenPosition: _dragScreenPosition,
         dragCanPlace: _dragCanPlace,
@@ -852,5 +860,35 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     _pendingFateRemovalType = null;
     _fateRemovalLeft = 0;
     _evaluateGameOver();
+  }
+
+  bool _handleThemeTap(Offset screenPosition) {
+    final currentLayout = layout;
+    if (currentLayout == null) return false;
+
+    final buttonRect = currentLayout.settingsButtonRect();
+    if (buttonRect.contains(screenPosition)) {
+      _showThemeMenu = !_showThemeMenu;
+      return true;
+    }
+
+    if (!_showThemeMenu) return false;
+
+    final menuRect = currentLayout.themeMenuRect();
+    if (!menuRect.contains(screenPosition)) {
+      _showThemeMenu = false;
+      return true;
+    }
+
+    final options = BlockThemeMode.values;
+    for (var i = 0; i < options.length; i++) {
+      if (currentLayout.themeOptionRect(i).contains(screenPosition)) {
+        _themeMode = options[i];
+        _showThemeMenu = false;
+        return true;
+      }
+    }
+
+    return true;
   }
 }

@@ -10,6 +10,8 @@ void _drawHeader({
   required int angelStack,
   required int devilStack,
   required double effectTime,
+  required bool showThemeMenu,
+  required BlockThemeMode themeMode,
 }) {
   _drawScorePanelBackground(canvas, layout);
   _drawHeaderStackDots(
@@ -31,11 +33,11 @@ void _drawHeader({
   final isComboActive = comboCount > 0;
   final scoreColor = isComboActive
       ? Color.lerp(
-          const Color(0xFF111827),
-          const Color(0xFF0EA5E9),
+          const Color(0xFFE2E8F0),
+          const Color(0xFF67E8F9),
           neonPulse * 0.42,
         )!
-      : const Color(0xFF111827);
+      : const Color(0xFFE2E8F0);
   final glowAlpha = isComboActive ? 0.45 + (neonPulse * 0.45) : 0.0;
 
   final scorePainter = TextPainter(
@@ -73,7 +75,7 @@ void _drawHeader({
     text: TextSpan(
       text: 'TURN $turn   |   STORED $storedScore',
       style: const TextStyle(
-        color: Color(0xFF64748B),
+        color: Color(0xFF94A3B8),
         fontSize: 10,
         fontWeight: FontWeight.w700,
         letterSpacing: 0.8,
@@ -120,6 +122,11 @@ void _drawHeader({
       ),
     );
   }
+
+  _drawSettingsButton(canvas: canvas, layout: layout, isOpen: showThemeMenu);
+  if (showThemeMenu) {
+    _drawThemeMenu(canvas: canvas, layout: layout, selectedMode: themeMode);
+  }
 }
 
 void _drawHeaderStackDots({
@@ -160,20 +167,107 @@ void _drawHeaderStackDots({
 }
 
 void _drawScorePanelBackground(Canvas canvas, GameLayout layout) {
-  final rect = layout.scoreRect;
-  final fillPaint = Paint()
-    ..shader = const LinearGradient(
-      colors: [Color(0xFFF8FAFC), Color(0xFFE2E8F0)],
-      begin: Alignment.topCenter,
-      end: Alignment.bottomCenter,
-    ).createShader(rect);
-  final panel = RRect.fromRectAndRadius(
-    rect,
-    const Radius.circular(GameConstants.cornerRadius),
+  canvas.drawRRect(
+    RRect.fromRectAndRadius(
+      layout.scoreRect,
+      const Radius.circular(GameConstants.cornerRadius),
+    ),
+    DualBlocksRenderer._trayPaint,
+  );
+}
+
+void _drawSettingsButton({
+  required Canvas canvas,
+  required GameLayout layout,
+  required bool isOpen,
+}) {
+  final rect = layout.settingsButtonRect();
+  final paint = Paint()
+    ..color = isOpen ? const Color(0xFF1E293B) : const Color(0xFF0F172A);
+  final border = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 1
+    ..color = const Color(0xFF334155);
+
+  canvas.drawRRect(
+    RRect.fromRectAndRadius(rect, const Radius.circular(7)),
+    paint,
+  );
+  canvas.drawRRect(
+    RRect.fromRectAndRadius(rect, const Radius.circular(7)),
+    border,
   );
 
-  canvas.drawRRect(panel, fillPaint);
-  canvas.drawRRect(panel, DualBlocksRenderer._headerBorderPaint);
+  final iconPainter = TextPainter(
+    text: const TextSpan(
+      text: 'SET',
+      style: TextStyle(
+        color: Color(0xFFE2E8F0),
+        fontSize: 10,
+        fontWeight: FontWeight.w700,
+      ),
+    ),
+    textDirection: TextDirection.ltr,
+  )..layout();
+
+  iconPainter.paint(
+    canvas,
+    Offset(
+      rect.center.dx - (iconPainter.width / 2),
+      rect.center.dy - (iconPainter.height / 2),
+    ),
+  );
+}
+
+void _drawThemeMenu({
+  required Canvas canvas,
+  required GameLayout layout,
+  required BlockThemeMode selectedMode,
+}) {
+  final menu = layout.themeMenuRect();
+  final panelPaint = Paint()..color = const Color(0xFF0F172A);
+  final panelBorder = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 1
+    ..color = const Color(0xFF334155);
+  canvas.drawRRect(
+    RRect.fromRectAndRadius(menu, const Radius.circular(8)),
+    panelPaint,
+  );
+  canvas.drawRRect(
+    RRect.fromRectAndRadius(menu, const Radius.circular(8)),
+    panelBorder,
+  );
+
+  final options = BlockThemeMode.values;
+  for (var i = 0; i < options.length; i++) {
+    final rect = layout.themeOptionRect(i);
+    final option = options[i];
+    final isSelected = option == selectedMode;
+    final bg = Paint()
+      ..color = isSelected ? const Color(0xFF1D4ED8) : const Color(0x00000000);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rect, const Radius.circular(6)),
+      bg,
+    );
+
+    final textPainter = TextPainter(
+      text: TextSpan(
+        text: option.label,
+        style: TextStyle(
+          color: isSelected ? Colors.white : const Color(0xFFCBD5E1),
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout(maxWidth: rect.width - 10);
+
+    textPainter.paint(
+      canvas,
+      Offset(rect.left + 8, rect.center.dy - (textPainter.height / 2)),
+    );
+  }
 }
 
 void _drawScorePopup({

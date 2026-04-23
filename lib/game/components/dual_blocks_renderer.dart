@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../config/game_constants.dart';
 import '../models/block_shape.dart';
+import '../models/block_theme_mode.dart';
 import '../models/cell_state.dart';
 import '../models/fate_effect.dart';
 import '../models/game_layout.dart';
@@ -21,10 +22,6 @@ class DualBlocksRenderer {
     ..color = GameConstants.gridLine
     ..strokeWidth = 1;
   static final Paint _trayPaint = Paint()..color = GameConstants.trayBackground;
-  static final Paint _headerBorderPaint = Paint()
-    ..style = PaintingStyle.stroke
-    ..strokeWidth = 1.2
-    ..color = const Color(0xFFE5E7EB);
   static final Paint _headerAngelRingPaint = Paint()
     ..style = PaintingStyle.stroke
     ..strokeWidth = 2;
@@ -101,7 +98,13 @@ class DualBlocksRenderer {
     _shapePreviewDevilPaint.color = _devilCellPaint.color;
 
     _drawBoard(canvas, frame.layout);
-    _drawCells(canvas, frame.layout, frame.board);
+    _drawCells(
+      canvas,
+      frame.layout,
+      frame.board,
+      themeMode: frame.themeMode,
+      effectTime: frame.effectTime,
+    );
     if (frame.previewClearRows.isNotEmpty ||
         frame.previewClearCols.isNotEmpty) {
       _drawPreviewClearLines(
@@ -155,6 +158,8 @@ class DualBlocksRenderer {
       angelStack: frame.angelStack,
       devilStack: frame.devilStack,
       effectTime: frame.effectTime,
+      showThemeMenu: frame.showThemeMenu,
+      themeMode: frame.themeMode,
     );
     _drawScorePopup(
       canvas: canvas,
@@ -180,6 +185,7 @@ class DualBlocksRenderer {
       frame.trayDevilGifts,
       frame.selectedTrayIndex,
       frame.effectTime,
+      frame.themeMode,
     );
     if (frame.isGameOver) {
       _drawGameOverOverlay(canvas, frame.layout);

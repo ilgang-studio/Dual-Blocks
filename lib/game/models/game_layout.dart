@@ -79,4 +79,34 @@ class GameLayout {
     if (devilChoiceRect().contains(point)) return FateType.devil;
     return null;
   }
+
+  Rect settingsButtonRect() {
+    const size = 26.0;
+    return Rect.fromLTWH(
+      scoreRect.right - size - 8,
+      scoreRect.top + 8,
+      size,
+      size,
+    );
+  }
+
+  Rect themeMenuRect() {
+    const width = 112.0;
+    const height = 96.0;
+    final button = settingsButtonRect();
+    final left = button.right - width;
+    final top = button.bottom + 6;
+    return Rect.fromLTWH(left, top, width, height);
+  }
+
+  Rect themeOptionRect(int index) {
+    final menu = themeMenuRect();
+    const optionHeight = 28.0;
+    return Rect.fromLTWH(
+      menu.left + 6,
+      menu.top + 6 + (index * optionHeight),
+      menu.width - 12,
+      optionHeight - 2,
+    );
+  }
 }
