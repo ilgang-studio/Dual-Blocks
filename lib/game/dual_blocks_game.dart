@@ -74,6 +74,11 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   bool canPlace(int row, int col) {
     if (_pendingClearResult != null) return false;
     if (_pendingFateRemovalCells.isNotEmpty) return false;
+    if (_isSelectedDestructionBlock) {
+      if (row < 0 || row >= GameConstants.boardSize) return false;
+      if (col < 0 || col >= GameConstants.boardSize) return false;
+      return board[row][col].isOccupied;
+    }
     final selectedShape = _selectedShape;
     if (selectedShape == null) return false;
     return PlacementSystem.canPlaceShape(
@@ -86,6 +91,13 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
 
   bool placeBlock(int row, int col) {
     if (isGameOver) return false;
+    if (_isSelectedDestructionBlock) {
+      if (!canPlace(row, col)) return false;
+      board[row][col] = CellState.empty;
+      _consumeSelectedTrayBlock();
+      return true;
+    }
+
     final selectedShape = _selectedShape;
     if (selectedShape == null) return false;
 
@@ -376,6 +388,13 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     if (index < 0 || index >= trayBlocks.length) return;
 
     trayBlocks[index] = null;
+    if (index < trayFates.length) {
+      trayFates[index] = null;
+    }
+    if (index < trayDevilGifts.length) {
+      trayDevilGifts[index] = null;
+    }
+    _selectedDevilGift = null;
 
     selectedTrayIndex = TurnFlowSystem.nextSelectedIndex(trayBlocks);
     if (TurnFlowSystem.shouldRefillTray(trayBlocks)) {
@@ -683,6 +702,18 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     if (_selectedFate == FateType.angel) return CellState.angelFilled;
     if (_selectedFate == FateType.devil) return CellState.devilFilled;
     return CellState.filled;
+  }
+
+  DevilGiftType? get _selectedTrayDevilGift {
+    final index = selectedTrayIndex;
+    if (index == null) return null;
+    if (index < 0 || index >= trayDevilGifts.length) return null;
+    return trayDevilGifts[index];
+  }
+
+  bool get _isSelectedDestructionBlock {
+    return _selectedFate == FateType.devil &&
+        _selectedTrayDevilGift == DevilGiftType.destructionAid;
   }
 
   void _queueFateRemoval(List<math.Point<int>> cells, FateType type) {
