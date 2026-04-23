@@ -1,3 +1,6 @@
+import 'dart:math' as math;
+
+import 'package:dual_blocks/game/models/block_shape.dart';
 import 'package:dual_blocks/game/models/cell_state.dart';
 import 'package:dual_blocks/game/systems/line_clear_system.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -68,5 +71,56 @@ void main() {
     expect(board[0][0], CellState.filled);
     expect(board[1][1], CellState.filled);
     expect(board[2][2], CellState.filled);
+  });
+
+  test(
+    'preview clear finds row and col that would complete after placement',
+    () {
+      final board = boardOf(4);
+      board[1][0] = CellState.filled;
+      board[1][1] = CellState.filled;
+      board[1][3] = CellState.filled;
+      board[0][2] = CellState.filled;
+      board[2][2] = CellState.filled;
+      board[3][2] = CellState.filled;
+
+      const single = BlockShape(
+        id: 'single',
+        cells: [math.Point<int>(0, 0)],
+        weight: 1,
+      );
+
+      final preview = LineClearSystem.getPreviewClearLines(
+        board: board,
+        shape: single,
+        anchorRow: 1,
+        anchorCol: 2,
+      );
+
+      expect(preview.rows, {1});
+      expect(preview.cols, {2});
+      expect(board[1][2], CellState.empty);
+    },
+  );
+
+  test('preview clear returns empty when placement is invalid', () {
+    final board = boardOf(4);
+    board[1][1] = CellState.filled;
+
+    const single = BlockShape(
+      id: 'single',
+      cells: [math.Point<int>(0, 0)],
+      weight: 1,
+    );
+
+    final preview = LineClearSystem.getPreviewClearLines(
+      board: board,
+      shape: single,
+      anchorRow: 1,
+      anchorCol: 1,
+    );
+
+    expect(preview.rows, isEmpty);
+    expect(preview.cols, isEmpty);
   });
 }
