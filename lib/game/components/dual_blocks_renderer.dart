@@ -48,6 +48,11 @@ class DualBlocksRenderer {
     ..strokeWidth = 2.2;
   static final Paint _lineClearPaint = Paint()
     ..color = GameConstants.lineClearHighlight.withValues(alpha: 0.38);
+  static final Paint _previewLineGlowPaint = Paint()
+    ..style = PaintingStyle.fill;
+  static final Paint _previewLineBorderPaint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 1.5;
   static final Paint _successOverlayPaint = Paint()
     ..color = const Color(0xFF34D399).withValues(alpha: 0.0);
   static final Paint _failOverlayPaint = Paint()
@@ -79,6 +84,16 @@ class DualBlocksRenderer {
 
     _drawBoard(canvas, frame.layout);
     _drawCells(canvas, frame.layout, frame.board);
+    if (frame.previewClearRows.isNotEmpty ||
+        frame.previewClearCols.isNotEmpty) {
+      _drawPreviewClearLines(
+        canvas: canvas,
+        layout: frame.layout,
+        previewRows: frame.previewClearRows,
+        previewCols: frame.previewClearCols,
+        effectTime: frame.effectTime,
+      );
+    }
     _drawPlacementFeedback(
       canvas: canvas,
       layout: frame.layout,
@@ -773,6 +788,47 @@ class DualBlocksRenderer {
         layout.boardRect.height,
       );
       canvas.drawRect(rect, _lineClearPaint);
+    }
+  }
+
+  static void _drawPreviewClearLines({
+    required Canvas canvas,
+    required GameLayout layout,
+    required Set<int> previewRows,
+    required Set<int> previewCols,
+    required double effectTime,
+  }) {
+    final pulse = (math.sin(effectTime * 4.0) + 1) / 2;
+    final glowAlpha = 0.16 + (pulse * 0.18);
+    final borderAlpha = 0.35 + (pulse * 0.35);
+
+    _previewLineGlowPaint.color = const Color(
+      0xFFFFF59D,
+    ).withValues(alpha: glowAlpha);
+    _previewLineBorderPaint.color = const Color(
+      0xFFFFF176,
+    ).withValues(alpha: borderAlpha);
+
+    for (final row in previewRows) {
+      final rect = Rect.fromLTWH(
+        layout.boardRect.left,
+        layout.boardRect.top + (row * layout.cellSize),
+        layout.boardRect.width,
+        layout.cellSize,
+      );
+      canvas.drawRect(rect, _previewLineGlowPaint);
+      canvas.drawRect(rect.deflate(0.8), _previewLineBorderPaint);
+    }
+
+    for (final col in previewCols) {
+      final rect = Rect.fromLTWH(
+        layout.boardRect.left + (col * layout.cellSize),
+        layout.boardRect.top,
+        layout.cellSize,
+        layout.boardRect.height,
+      );
+      canvas.drawRect(rect, _previewLineGlowPaint);
+      canvas.drawRect(rect.deflate(0.8), _previewLineBorderPaint);
     }
   }
 
