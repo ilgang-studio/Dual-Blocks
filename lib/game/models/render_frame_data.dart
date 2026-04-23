@@ -24,6 +24,8 @@ class RenderFrameData {
     required this.dragShape,
     required this.dragScreenPosition,
     required this.dragCanPlace,
+    required this.previewClearRows,
+    required this.previewClearCols,
     required this.clearRows,
     required this.clearCols,
     required this.showClearHighlight,
@@ -58,6 +60,8 @@ class RenderFrameData {
   final BlockShape? dragShape;
   final Offset? dragScreenPosition;
   final bool dragCanPlace;
+  final Set<int> previewClearRows;
+  final Set<int> previewClearCols;
   final Set<int> clearRows;
   final Set<int> clearCols;
   final bool showClearHighlight;

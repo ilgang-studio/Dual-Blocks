@@ -11,6 +11,7 @@ import 'models/cell_state.dart';
 import 'models/fate_effect.dart';
 import 'models/game_layout.dart';
 import 'models/line_clear_result.dart';
+import 'models/preview_clear_result.dart';
 import 'models/render_frame_data.dart';
 import 'systems/alignment_turn_system.dart';
 import 'systems/devil_block_system.dart';
@@ -37,6 +38,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   bool _isDraggingBlock = false;
   BlockShape? _draggingShape;
   Offset? _dragScreenPosition;
+  PreviewClearResult _previewClearResult = PreviewClearResult.empty;
   LineClearResult _lastClearResult = const LineClearResult(
     fullRows: {},
     fullCols: {},
@@ -261,7 +263,11 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     final col = boardPoint.x;
     final row = boardPoint.y;
     if (!canPlace(row, col)) return false;
-    return placeBlock(row, col);
+    final placed = placeBlock(row, col);
+    if (placed) {
+      _previewClearResult = PreviewClearResult.empty;
+    }
+    return placed;
   }
 
   bool trySelectTrayFromScreen(Offset screenPosition) {
@@ -549,6 +555,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     _isDraggingBlock = true;
     _draggingShape = _selectedShape;
     _dragScreenPosition = screenPosition;
+    _updatePreviewClearState();
   }
 
   @override
@@ -561,6 +568,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
       event.canvasEndPosition.x,
       event.canvasEndPosition.y,
     );
+    _updatePreviewClearState();
   }
 
   @override
@@ -584,6 +592,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     _isDraggingBlock = false;
     _draggingShape = null;
     _dragScreenPosition = null;
+    _previewClearResult = PreviewClearResult.empty;
   }
 
   @override
@@ -660,6 +669,8 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
         dragShape: _draggingShape,
         dragScreenPosition: _dragScreenPosition,
         dragCanPlace: _dragCanPlace,
+        previewClearRows: _previewClearResult.rows,
+        previewClearCols: _previewClearResult.cols,
         clearRows: _lastClearResult.fullRows,
         clearCols: _lastClearResult.fullCols,
         showClearHighlight: _lineHighlightLeft > 0,
@@ -714,6 +725,45 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   bool get _isSelectedDestructionBlock {
     return _selectedFate == FateType.devil &&
         _selectedTrayDevilGift == DevilGiftType.destructionAid;
+  }
+
+  void _updatePreviewClearState() {
+    if (!_isDraggingBlock) {
+      _previewClearResult = PreviewClearResult.empty;
+      return;
+    }
+    if (_isSelectedDestructionBlock) {
+      _previewClearResult = PreviewClearResult.empty;
+      return;
+    }
+
+    final selectedShape = _draggingShape;
+    final screenPosition = _dragScreenPosition;
+    if (selectedShape == null || screenPosition == null) {
+      _previewClearResult = PreviewClearResult.empty;
+      return;
+    }
+
+    final boardPoint = screenToBoard(screenPosition);
+    if (boardPoint == null) {
+      _previewClearResult = PreviewClearResult.empty;
+      return;
+    }
+
+    final col = boardPoint.x;
+    final row = boardPoint.y;
+    if (!canPlace(row, col)) {
+      _previewClearResult = PreviewClearResult.empty;
+      return;
+    }
+
+    _previewClearResult = LineClearSystem.getPreviewClearLines(
+      board: board,
+      shape: selectedShape,
+      anchorRow: row,
+      anchorCol: col,
+      fillState: _currentFillState,
+    );
   }
 
   void _queueFateRemoval(List<math.Point<int>> cells, FateType type) {
