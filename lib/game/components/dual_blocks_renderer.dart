@@ -17,24 +17,40 @@ class DualBlocksRenderer {
   static final Paint _trayPaint = Paint()..color = GameConstants.trayBackground;
   static final Paint _scorePaint = Paint()
     ..color = GameConstants.scoreBackground;
-  static final Paint _cellFallbackPaint = Paint()..color = Colors.blue;
-  static final Paint _angelCellPaint = Paint()..color = const Color(0xFF93C5FD);
-  static final Paint _devilCellPaint = Paint()..color = const Color(0xFF7F1D1D);
+  static final Paint _cellFallbackPaint = Paint()
+    ..color = GameConstants.normalBlockColor;
+  static final Paint _angelCellPaint = Paint()
+    ..color = GameConstants.angelBlockColor;
+  static final Paint _devilCellPaint = Paint()
+    ..color = GameConstants.devilBlockColor;
   static final Paint _slotPaint = Paint()
     ..color = GameConstants.traySlotBackground;
   static final Paint _slotSelectedPaint = Paint()
     ..color = GameConstants.traySlotSelected.withValues(alpha: 0.35);
+  static final Paint _slotSelectedBorderPaint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 3
+    ..color = const Color(0xFFE2E8F0);
+  static final Paint _slotGlowPaint = Paint()
+    ..color = const Color(0x668EC5FF)
+    ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10);
   static final Paint _shapePreviewPaint = Paint()..color = Colors.blue;
   static final Paint _shapePreviewAngelPaint = Paint()
     ..color = const Color(0xFF93C5FD);
   static final Paint _shapePreviewDevilPaint = Paint()
     ..color = const Color(0xFF7F1D1D);
-  static final Paint _dragOkPaint = Paint()
-    ..color = const Color(0xFF34D399).withValues(alpha: 0.65);
-  static final Paint _dragBlockedPaint = Paint()
-    ..color = const Color(0xFFF87171).withValues(alpha: 0.65);
+  static final Paint _dragPreviewFillPaint = Paint()
+    ..color = const Color(0x99FFFFFF)
+    ..style = PaintingStyle.fill;
+  static final Paint _dragPreviewBorderPaint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 2.2;
   static final Paint _lineClearPaint = Paint()
     ..color = GameConstants.lineClearHighlight.withValues(alpha: 0.38);
+  static final Paint _successOverlayPaint = Paint()
+    ..color = const Color(0xFF34D399).withValues(alpha: 0.0);
+  static final Paint _failOverlayPaint = Paint()
+    ..color = const Color(0xFFF87171).withValues(alpha: 0.0);
   static final Paint _gameOverOverlayPaint = Paint()
     ..color = Colors.black.withValues(alpha: 0.45);
   static final Paint _angelBadgePaint = Paint()
@@ -80,6 +96,10 @@ class DualBlocksRenderer {
     required int angelStack,
     required int devilStack,
     required int storedScore,
+    required int scorePopupValue,
+    required double scorePopupProgress,
+    required double placeSuccessProgress,
+    required double placeFailProgress,
   }) {
     // Keep preview colors in sync with actual placed-cell colors even after hot reload.
     _shapePreviewPaint.color = _cellFallbackPaint.color;
@@ -88,6 +108,12 @@ class DualBlocksRenderer {
 
     _drawBoard(canvas, layout);
     _drawCells(canvas, layout, board);
+    _drawPlacementFeedback(
+      canvas: canvas,
+      layout: layout,
+      successProgress: placeSuccessProgress,
+      failProgress: placeFailProgress,
+    );
     if (showClearHighlight) {
       _drawLineClearHighlight(
         canvas: canvas,
@@ -106,6 +132,12 @@ class DualBlocksRenderer {
     _drawScore(canvas, layout, score);
     _drawTurn(canvas, layout, turn);
     _drawStoredScore(canvas, layout, storedScore);
+    _drawScorePopup(
+      canvas: canvas,
+      layout: layout,
+      scoreValue: scorePopupValue,
+      progress: scorePopupProgress,
+    );
     _drawFateSelectors(
       canvas: canvas,
       layout: layout,
@@ -375,9 +407,21 @@ class DualBlocksRenderer {
         slotPaint,
       );
       if (selectedTrayIndex == i) {
+        final glowRect = slotRect.inflate(6);
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(glowRect, const Radius.circular(14)),
+          _slotGlowPaint,
+        );
         canvas.drawRRect(
           RRect.fromRectAndRadius(slotRect, const Radius.circular(10)),
           _slotSelectedPaint,
+        );
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(
+            slotRect.deflate(1),
+            const Radius.circular(10),
+          ),
+          _slotSelectedBorderPaint,
         );
       }
 
@@ -386,7 +430,13 @@ class DualBlocksRenderer {
           ? slotRect.deflate(8)
           : _shapePreviewBounds(slotRect, shape);
       if (shape != null) {
-        _drawShapePreview(canvas, slotRect, shape, fate: slotFate);
+        _drawShapePreview(
+          canvas,
+          slotRect,
+          shape,
+          fate: slotFate,
+          scale: selectedTrayIndex == i ? 1.08 : 1.0,
+        );
       }
 
       if (slotFate == FateType.angel) {
@@ -525,9 +575,18 @@ class DualBlocksRenderer {
     Rect slotRect,
     BlockShape shape, {
     FateType? fate,
+    double scale = 1.0,
   }) {
-    const previewCell = 14.0;
-    final previewBounds = _shapePreviewBounds(slotRect, shape);
+    var previewBounds = _shapePreviewBounds(slotRect, shape);
+    if (scale != 1.0) {
+      final scaledWidth = previewBounds.width * scale;
+      final scaledHeight = previewBounds.height * scale;
+      previewBounds = Rect.fromCenter(
+        center: previewBounds.center,
+        width: scaledWidth,
+        height: scaledHeight,
+      );
+    }
     final points = shape.cells;
 
     var minX = points.first.x;
@@ -542,12 +601,13 @@ class DualBlocksRenderer {
       if (p.y > maxY) maxY = p.y;
     }
 
+    final cellSize = ((previewBounds.width) / ((maxX - minX) + 1));
     final originX = previewBounds.left;
     final originY = previewBounds.top;
 
     for (final point in points) {
-      final left = originX + ((point.x - minX) * previewCell);
-      final top = originY + ((point.y - minY) * previewCell);
+      final left = originX + ((point.x - minX) * cellSize);
+      final top = originY + ((point.y - minY) * cellSize);
       final paint = fate == FateType.angel
           ? _shapePreviewAngelPaint
           : fate == FateType.devil
@@ -555,7 +615,7 @@ class DualBlocksRenderer {
           : _shapePreviewPaint;
       canvas.drawRRect(
         RRect.fromRectAndRadius(
-          Rect.fromLTWH(left, top, previewCell - 2, previewCell - 2),
+          Rect.fromLTWH(left, top, cellSize - 2, cellSize - 2),
           const Radius.circular(3),
         ),
         paint,
@@ -597,7 +657,11 @@ class DualBlocksRenderer {
     final boardPoint = layout.screenToBoard(dragScreenPosition);
     if (boardPoint == null) return;
 
-    final paint = dragCanPlace ? _dragOkPaint : _dragBlockedPaint;
+    final borderColor = dragCanPlace
+        ? const Color(0xFF22C55E)
+        : const Color(0xFFEF4444);
+    _dragPreviewBorderPaint.color = borderColor;
+    _dragPreviewFillPaint.color = borderColor.withValues(alpha: 0.28);
     for (final cell in dragShape.cells) {
       final col = boardPoint.x + cell.x;
       final row = boardPoint.y + cell.y;
@@ -613,8 +677,68 @@ class DualBlocksRenderer {
         layout.cellSize,
         layout.cellSize,
       );
-      canvas.drawRect(rect, paint);
+      canvas.drawRect(rect, _dragPreviewFillPaint);
+      canvas.drawRect(rect.deflate(1), _dragPreviewBorderPaint);
     }
+  }
+
+  static void _drawPlacementFeedback({
+    required Canvas canvas,
+    required GameLayout layout,
+    required double successProgress,
+    required double failProgress,
+  }) {
+    if (successProgress > 0) {
+      final alpha = successProgress.clamp(0, 1).toDouble() * 0.22;
+      _successOverlayPaint.color = const Color(
+        0xFF34D399,
+      ).withValues(alpha: alpha);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(layout.boardRect, const Radius.circular(12)),
+        _successOverlayPaint,
+      );
+    }
+    if (failProgress > 0) {
+      final alpha = failProgress.clamp(0, 1).toDouble() * 0.26;
+      _failOverlayPaint.color = const Color(
+        0xFFF87171,
+      ).withValues(alpha: alpha);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(layout.boardRect, const Radius.circular(12)),
+        _failOverlayPaint,
+      );
+    }
+  }
+
+  static void _drawScorePopup({
+    required Canvas canvas,
+    required GameLayout layout,
+    required int scoreValue,
+    required double progress,
+  }) {
+    if (progress <= 0 || scoreValue <= 0) return;
+    final yLift = (1 - progress) * 26;
+    final alpha = progress.clamp(0, 1).toDouble();
+
+    final painter = TextPainter(
+      text: TextSpan(
+        text: '+$scoreValue',
+        style: TextStyle(
+          color: const Color(0xFFFDE68A).withValues(alpha: alpha),
+          fontSize: 16,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+
+    painter.paint(
+      canvas,
+      Offset(
+        layout.boardRect.center.dx - (painter.width / 2),
+        layout.boardRect.top - 18 - yLift,
+      ),
+    );
   }
 
   static void _drawLineClearHighlight({

@@ -37,7 +37,12 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     fullRows: {},
     fullCols: {},
   );
+  LineClearResult? _pendingClearResult;
   double _lineHighlightLeft = 0;
+  double _scorePopupLeft = 0;
+  int _scorePopupValue = 0;
+  double _placeSuccessLeft = 0;
+  double _placeFailLeft = 0;
   final math.Random _random = math.Random();
   int _angelStack = 0;
   int _devilStack = 0;
@@ -60,6 +65,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   );
 
   bool canPlace(int row, int col) {
+    if (_pendingClearResult != null) return false;
     final selectedShape = _selectedShape;
     if (selectedShape == null) return false;
     return PlacementSystem.canPlaceShape(
@@ -84,8 +90,12 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     );
     if (placed) {
       score += selectedShape.cells.length;
+      _placeSuccessLeft = GameConstants.placementSuccessSeconds;
+      _placeFailLeft = 0;
       _applyLineClear();
       _consumeSelectedTrayBlock();
+    } else {
+      _triggerPlaceFailFeedback();
     }
     return placed;
   }
@@ -99,11 +109,8 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
 
     _lastClearResult = result;
     _lineHighlightLeft = GameConstants.lineClearHighlightSeconds;
-
-    final clearedCellCount = LineClearSystem.clearFilledLines(
-      board: board,
-      result: result,
-    );
+    _pendingClearResult = result;
+    final clearedCellCountEstimate = _estimatedClearCellCount(result);
     final clearedLineCount = result.fullRows.length + result.fullCols.length;
     final clearScore = _calculateLineClearScore(
       comboCount: _comboCount,
@@ -121,10 +128,21 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
       final stored = (scoredClear * GameConstants.angelStoreRatio).floor();
       _storedScore += stored;
       score += scoredClear - stored;
+      _scorePopupValue = scoredClear - stored;
     } else {
       score += scoredClear;
+      _scorePopupValue = scoredClear;
     }
-    return clearedCellCount;
+    _scorePopupLeft = GameConstants.scorePopupSeconds;
+    return clearedCellCountEstimate;
+  }
+
+  int _estimatedClearCellCount(LineClearResult result) {
+    final rowCount = result.fullRows.length;
+    final colCount = result.fullCols.length;
+    return (rowCount * GameConstants.boardSize) +
+        (colCount * GameConstants.boardSize) -
+        (rowCount * colCount);
   }
 
   int _calculateLineClearScore({
@@ -277,12 +295,16 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   }
 
   void tryPlaceFromScreen(Offset screenPosition) {
+    if (_pendingClearResult != null) return;
     final boardPoint = screenToBoard(screenPosition);
     if (boardPoint == null) return;
 
     final col = boardPoint.x;
     final row = boardPoint.y;
-    if (!canPlace(row, col)) return;
+    if (!canPlace(row, col)) {
+      _triggerPlaceFailFeedback();
+      return;
+    }
     placeBlock(row, col);
   }
 
@@ -298,12 +320,16 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
 
     final col = boardPoint.x;
     final row = boardPoint.y;
-    if (!canPlace(row, col)) return false;
+    if (!canPlace(row, col)) {
+      _triggerPlaceFailFeedback();
+      return false;
+    }
     return placeBlock(row, col);
   }
 
   bool trySelectTrayFromScreen(Offset screenPosition) {
     if (isGameOver) return false;
+    if (_pendingClearResult != null) return false;
     final currentLayout = layout;
     if (currentLayout == null) return false;
 
@@ -364,6 +390,11 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     }
     _lastClearResult = const LineClearResult(fullRows: {}, fullCols: {});
     _lineHighlightLeft = 0;
+    _pendingClearResult = null;
+    _scorePopupLeft = 0;
+    _scorePopupValue = 0;
+    _placeSuccessLeft = 0;
+    _placeFailLeft = 0;
   }
 
   void _refillTray({required bool increaseTurn}) {
@@ -381,6 +412,10 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   }
 
   void _evaluateGameOver() {
+    if (_pendingClearResult != null) {
+      isGameOver = false;
+      return;
+    }
     if (_alignmentChoicePending) {
       isGameOver = false;
       return;
@@ -553,6 +588,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   void onDragStart(DragStartEvent event) {
     super.onDragStart(event);
     if (isGameOver) return;
+    if (_pendingClearResult != null) return;
 
     final screenPosition = Offset(event.localPosition.x, event.localPosition.y);
     final selected = trySelectTrayFromScreen(screenPosition);
@@ -602,12 +638,32 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   void update(double dt) {
     super.update(dt);
     _effectTime += dt;
-    if (_lineHighlightLeft > 0) {
+    if (_pendingClearResult != null && _lineHighlightLeft > 0) {
+      _lineHighlightLeft -= dt;
+      if (_lineHighlightLeft <= 0) {
+        _resolvePendingLineClear();
+      }
+    } else if (_lineHighlightLeft > 0) {
       _lineHighlightLeft -= dt;
       if (_lineHighlightLeft <= 0) {
         _lineHighlightLeft = 0;
         _lastClearResult = const LineClearResult(fullRows: {}, fullCols: {});
       }
+    }
+
+    if (_scorePopupLeft > 0) {
+      _scorePopupLeft -= dt;
+      if (_scorePopupLeft < 0) _scorePopupLeft = 0;
+    }
+
+    if (_placeSuccessLeft > 0) {
+      _placeSuccessLeft -= dt;
+      if (_placeSuccessLeft < 0) _placeSuccessLeft = 0;
+    }
+
+    if (_placeFailLeft > 0) {
+      _placeFailLeft -= dt;
+      if (_placeFailLeft < 0) _placeFailLeft = 0;
     }
 
     if (_fateBannerLeft > 0) {
@@ -653,6 +709,11 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
       angelStack: _angelStack,
       devilStack: _devilStack,
       storedScore: _storedScore,
+      scorePopupValue: _scorePopupValue,
+      scorePopupProgress: _scorePopupLeft / GameConstants.scorePopupSeconds,
+      placeSuccessProgress:
+          _placeSuccessLeft / GameConstants.placementSuccessSeconds,
+      placeFailProgress: _placeFailLeft / GameConstants.placementFailSeconds,
     );
   }
 
@@ -680,6 +741,23 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   int get angelStack => _angelStack;
   int get devilStack => _devilStack;
   int get storedScore => _storedScore;
+
+  void _resolvePendingLineClear() {
+    final pending = _pendingClearResult;
+    if (pending == null) return;
+
+    LineClearSystem.clearFilledLines(board: board, result: pending);
+
+    _pendingClearResult = null;
+    _lineHighlightLeft = 0;
+    _lastClearResult = const LineClearResult(fullRows: {}, fullCols: {});
+    _evaluateGameOver();
+  }
+
+  void _triggerPlaceFailFeedback() {
+    _placeFailLeft = GameConstants.placementFailSeconds;
+    _placeSuccessLeft = 0;
+  }
 }
 
 enum _LineAxis { row, col }
