@@ -11,6 +11,7 @@ import 'models/cell_state.dart';
 import 'models/fate_effect.dart';
 import 'models/game_layout.dart';
 import 'models/line_clear_result.dart';
+import 'models/render_frame_data.dart';
 import 'systems/alignment_turn_system.dart';
 import 'systems/devil_block_system.dart';
 import 'systems/fate_effect_system.dart';
@@ -644,40 +645,42 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
 
     DualBlocksRenderer.render(
       canvas: canvas,
-      layout: currentLayout,
-      score: score,
-      turn: turn,
-      isGameOver: isGameOver,
-      board: board,
-      trayBlocks: trayBlocks,
-      trayFates: trayFates,
-      trayDevilGifts: trayDevilGifts,
-      selectedTrayIndex: selectedTrayIndex,
-      isAlignmentTurn: isAlignmentTurn,
-      alignmentChoicePending: _alignmentChoicePending,
-      effectTime: _effectTime,
-      dragShape: _draggingShape,
-      dragScreenPosition: _dragScreenPosition,
-      dragCanPlace: _dragCanPlace,
-      clearRows: _lastClearResult.fullRows,
-      clearCols: _lastClearResult.fullCols,
-      showClearHighlight: _lineHighlightLeft > 0,
-      fateRemovalCells: _pendingFateRemovalCells,
-      fateRemovalType: _pendingFateRemovalType,
-      fateRemovalProgress:
-          _fateRemovalLeft / GameConstants.fateRemovalEffectSeconds,
-      fateType: _activeFateType,
-      fateReason: _activeFateReason,
-      showFateBanner: _fateBannerLeft > 0,
-      angelStack: _angelStack,
-      devilStack: _devilStack,
-      storedScore: _storedScore,
-      comboCount: _comboCount,
-      scorePopupValue: _scorePopupValue,
-      scorePopupProgress: _scorePopupLeft / GameConstants.scorePopupSeconds,
-      placeSuccessProgress:
-          _placeSuccessLeft / GameConstants.placementSuccessSeconds,
-      placeFailProgress: _placeFailLeft / GameConstants.placementFailSeconds,
+      frame: RenderFrameData(
+        layout: currentLayout,
+        score: score,
+        turn: turn,
+        isGameOver: isGameOver,
+        board: board,
+        trayBlocks: trayBlocks,
+        trayFates: trayFates,
+        trayDevilGifts: trayDevilGifts,
+        selectedTrayIndex: selectedTrayIndex,
+        isAlignmentTurn: isAlignmentTurn,
+        alignmentChoicePending: _alignmentChoicePending,
+        effectTime: _effectTime,
+        dragShape: _draggingShape,
+        dragScreenPosition: _dragScreenPosition,
+        dragCanPlace: _dragCanPlace,
+        clearRows: _lastClearResult.fullRows,
+        clearCols: _lastClearResult.fullCols,
+        showClearHighlight: _lineHighlightLeft > 0,
+        fateRemovalCells: _pendingFateRemovalCells,
+        fateRemovalType: _pendingFateRemovalType,
+        fateRemovalProgress:
+            _fateRemovalLeft / GameConstants.fateRemovalEffectSeconds,
+        fateType: _activeFateType,
+        fateReason: _activeFateReason,
+        showFateBanner: _fateBannerLeft > 0,
+        angelStack: _angelStack,
+        devilStack: _devilStack,
+        storedScore: _storedScore,
+        comboCount: _comboCount,
+        scorePopupValue: _scorePopupValue,
+        scorePopupProgress: _scorePopupLeft / GameConstants.scorePopupSeconds,
+        placeSuccessProgress:
+            _placeSuccessLeft / GameConstants.placementSuccessSeconds,
+        placeFailProgress: _placeFailLeft / GameConstants.placementFailSeconds,
+      ),
     );
   }
 

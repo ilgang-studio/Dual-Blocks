@@ -7,6 +7,7 @@ import '../models/block_shape.dart';
 import '../models/cell_state.dart';
 import '../models/fate_effect.dart';
 import '../models/game_layout.dart';
+import '../models/render_frame_data.dart';
 
 class DualBlocksRenderer {
   static final Paint _boardPaint = Paint()
@@ -70,115 +71,83 @@ class DualBlocksRenderer {
     ..color = const Color(0xFF22C55E)
     ..style = PaintingStyle.fill;
 
-  static void render({
-    required Canvas canvas,
-    required GameLayout layout,
-    required int score,
-    required int turn,
-    required bool isGameOver,
-    required List<List<CellState>> board,
-    required List<BlockShape?> trayBlocks,
-    required List<FateType?> trayFates,
-    required List<DevilGiftType?> trayDevilGifts,
-    required int? selectedTrayIndex,
-    required bool isAlignmentTurn,
-    required bool alignmentChoicePending,
-    required double effectTime,
-    required BlockShape? dragShape,
-    required Offset? dragScreenPosition,
-    required bool dragCanPlace,
-    required Set<int> clearRows,
-    required Set<int> clearCols,
-    required bool showClearHighlight,
-    required List<math.Point<int>> fateRemovalCells,
-    required FateType? fateRemovalType,
-    required double fateRemovalProgress,
-    required FateType? fateType,
-    required String? fateReason,
-    required bool showFateBanner,
-    required int angelStack,
-    required int devilStack,
-    required int storedScore,
-    required int comboCount,
-    required int scorePopupValue,
-    required double scorePopupProgress,
-    required double placeSuccessProgress,
-    required double placeFailProgress,
-  }) {
+  static void render({required Canvas canvas, required RenderFrameData frame}) {
     // Keep preview colors in sync with actual placed-cell colors even after hot reload.
     _shapePreviewPaint.color = _cellFallbackPaint.color;
     _shapePreviewAngelPaint.color = _angelCellPaint.color;
     _shapePreviewDevilPaint.color = _devilCellPaint.color;
 
-    _drawBoard(canvas, layout);
-    _drawCells(canvas, layout, board);
+    _drawBoard(canvas, frame.layout);
+    _drawCells(canvas, frame.layout, frame.board);
     _drawPlacementFeedback(
       canvas: canvas,
-      layout: layout,
-      successProgress: placeSuccessProgress,
-      failProgress: placeFailProgress,
+      layout: frame.layout,
+      successProgress: frame.placeSuccessProgress,
+      failProgress: frame.placeFailProgress,
     );
-    if (showClearHighlight) {
+    if (frame.showClearHighlight) {
       _drawLineClearHighlight(
         canvas: canvas,
-        layout: layout,
-        clearRows: clearRows,
-        clearCols: clearCols,
+        layout: frame.layout,
+        clearRows: frame.clearRows,
+        clearCols: frame.clearCols,
       );
     }
-    if (fateRemovalCells.isNotEmpty &&
-        fateRemovalType != null &&
-        fateRemovalProgress > 0) {
+    if (frame.fateRemovalCells.isNotEmpty &&
+        frame.fateRemovalType != null &&
+        frame.fateRemovalProgress > 0) {
       _drawFateRemovalOverlay(
         canvas: canvas,
-        layout: layout,
-        cells: fateRemovalCells,
-        fateType: fateRemovalType,
-        progress: fateRemovalProgress.clamp(0, 1).toDouble(),
+        layout: frame.layout,
+        cells: frame.fateRemovalCells,
+        fateType: frame.fateRemovalType!,
+        progress: frame.fateRemovalProgress.clamp(0, 1).toDouble(),
       );
     }
     _drawDragPreview(
       canvas: canvas,
-      layout: layout,
-      dragShape: dragShape,
-      dragScreenPosition: dragScreenPosition,
-      dragCanPlace: dragCanPlace,
+      layout: frame.layout,
+      dragShape: frame.dragShape,
+      dragScreenPosition: frame.dragScreenPosition,
+      dragCanPlace: frame.dragCanPlace,
     );
-    _drawScore(canvas, layout, score);
-    _drawTurn(canvas, layout, turn);
-    _drawStoredScore(canvas, layout, storedScore);
-    _drawCombo(canvas, layout, comboCount);
+    _drawScore(canvas, frame.layout, frame.score);
+    _drawTurn(canvas, frame.layout, frame.turn);
+    _drawStoredScore(canvas, frame.layout, frame.storedScore);
+    _drawCombo(canvas, frame.layout, frame.comboCount);
     _drawScorePopup(
       canvas: canvas,
-      layout: layout,
-      scoreValue: scorePopupValue,
-      progress: scorePopupProgress,
+      layout: frame.layout,
+      scoreValue: frame.scorePopupValue,
+      progress: frame.scorePopupProgress,
     );
     _drawFateSelectors(
       canvas: canvas,
-      layout: layout,
-      angelStack: angelStack,
-      devilStack: devilStack,
+      layout: frame.layout,
+      angelStack: frame.angelStack,
+      devilStack: frame.devilStack,
     );
-    if (showFateBanner && fateType != null && fateReason != null) {
-      _drawFateBanner(canvas, layout, fateType, fateReason);
+    if (frame.showFateBanner &&
+        frame.fateType != null &&
+        frame.fateReason != null) {
+      _drawFateBanner(canvas, frame.layout, frame.fateType!, frame.fateReason!);
     }
-    _drawGrid(canvas, layout);
-    _drawBottomTray(canvas, layout);
-    if (isAlignmentTurn || alignmentChoicePending) {
-      _drawAlignmentHeader(canvas, layout);
+    _drawGrid(canvas, frame.layout);
+    _drawBottomTray(canvas, frame.layout);
+    if (frame.isAlignmentTurn || frame.alignmentChoicePending) {
+      _drawAlignmentHeader(canvas, frame.layout);
     }
     _drawTraySlots(
       canvas,
-      layout,
-      trayBlocks,
-      trayFates,
-      trayDevilGifts,
-      selectedTrayIndex,
-      effectTime,
+      frame.layout,
+      frame.trayBlocks,
+      frame.trayFates,
+      frame.trayDevilGifts,
+      frame.selectedTrayIndex,
+      frame.effectTime,
     );
-    if (isGameOver) {
-      _drawGameOverOverlay(canvas, layout);
+    if (frame.isGameOver) {
+      _drawGameOverOverlay(canvas, frame.layout);
     }
   }
 
