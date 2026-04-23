@@ -18,6 +18,7 @@ import 'systems/hand_generation_system.dart';
 import 'systems/layout_system.dart';
 import 'systems/line_clear_system.dart';
 import 'systems/placement_system.dart';
+import 'systems/score_system.dart';
 
 class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   GameLayout? layout;
@@ -112,9 +113,11 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     _lastClearResult = result;
     _lineHighlightLeft = GameConstants.lineClearHighlightSeconds;
     _pendingClearResult = result;
-    final clearedCellCountEstimate = _estimatedClearCellCount(result);
+    final clearedCellCountEstimate = ScoreSystem.estimateClearedCellCount(
+      result,
+    );
     final clearedLineCount = result.fullRows.length + result.fullCols.length;
-    final clearScore = _calculateLineClearScore(
+    final clearScore = ScoreSystem.calculateLineClearScore(
       comboCount: _comboCount,
       clearedLineCount: clearedLineCount,
     );
@@ -126,43 +129,16 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
       _nextClearScoreMultiplier = 1.0;
     }
 
-    if (_angelStack > 0) {
-      final stored = (scoredClear * GameConstants.angelStoreRatio).floor();
-      _storedScore += stored;
-      score += scoredClear - stored;
-      _scorePopupValue = scoredClear - stored;
-    } else {
-      score += scoredClear;
-      _scorePopupValue = scoredClear;
-    }
+    final scoreResult = ScoreSystem.applyStoredScorePolicy(
+      rawClearScore: scoredClear,
+      hasAngelStack: _angelStack > 0,
+      storedScore: _storedScore,
+    );
+    _storedScore = scoreResult.nextStoredScore;
+    score += scoreResult.grantedScore;
+    _scorePopupValue = scoreResult.grantedScore;
     _scorePopupLeft = GameConstants.scorePopupSeconds;
     return clearedCellCountEstimate;
-  }
-
-  int _estimatedClearCellCount(LineClearResult result) {
-    final rowCount = result.fullRows.length;
-    final colCount = result.fullCols.length;
-    return (rowCount * GameConstants.boardSize) +
-        (colCount * GameConstants.boardSize) -
-        (rowCount * colCount);
-  }
-
-  int _calculateLineClearScore({
-    required int comboCount,
-    required int clearedLineCount,
-  }) {
-    if (clearedLineCount <= 0) return 0;
-
-    if (clearedLineCount == 1) {
-      return (comboCount + 1) * GameConstants.lineClearBasePoint;
-    }
-
-    final multiLineScore =
-        (comboCount + clearedLineCount) * GameConstants.lineClearBasePoint;
-    return (multiLineScore *
-            clearedLineCount *
-            GameConstants.lineClearMultiLineBonusMultiplier)
-        .round();
   }
 
   void selectAngel() {
