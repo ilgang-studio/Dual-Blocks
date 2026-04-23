@@ -19,6 +19,7 @@ import 'systems/layout_system.dart';
 import 'systems/line_clear_system.dart';
 import 'systems/placement_system.dart';
 import 'systems/score_system.dart';
+import 'systems/turn_flow_system.dart';
 
 class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   GameLayout? layout;
@@ -439,9 +440,8 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
 
     trayBlocks[index] = null;
 
-    final next = trayBlocks.indexWhere((shape) => shape != null);
-    selectedTrayIndex = next == -1 ? null : next;
-    if (selectedTrayIndex == null) {
+    selectedTrayIndex = TurnFlowSystem.nextSelectedIndex(trayBlocks);
+    if (TurnFlowSystem.shouldRefillTray(trayBlocks)) {
       _refillTray(increaseTurn: true);
       return;
     }
