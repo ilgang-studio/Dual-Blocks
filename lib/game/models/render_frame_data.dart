@@ -34,7 +34,7 @@ class RenderFrameData {
     required this.clearCols,
     required this.showClearHighlight,
     required this.fateRemovalCells,
-    required this.fateRemovalType,
+    required this.fateRemovalEffectType,
     required this.fateRemovalProgress,
     required this.fateType,
     required this.fateReason,
@@ -45,6 +45,7 @@ class RenderFrameData {
     required this.comboCount,
     required this.scorePopupValue,
     required this.scorePopupProgress,
+    required this.scorePulseProgress,
     required this.placeSuccessProgress,
     required this.placeFailProgress,
   });
@@ -73,7 +74,7 @@ class RenderFrameData {
   final Set<int> clearCols;
   final bool showClearHighlight;
   final List<math.Point<int>> fateRemovalCells;
-  final FateType? fateRemovalType;
+  final FateRemovalEffectType? fateRemovalEffectType;
   final double fateRemovalProgress;
   final FateType? fateType;
   final String? fateReason;
@@ -84,6 +85,7 @@ class RenderFrameData {
   final int comboCount;
   final int scorePopupValue;
   final double scorePopupProgress;
+  final double scorePulseProgress;
   final double placeSuccessProgress;
   final double placeFailProgress;
 }

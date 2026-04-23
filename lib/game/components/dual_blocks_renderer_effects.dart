@@ -145,14 +145,23 @@ void _drawFateRemovalOverlay({
   required Canvas canvas,
   required GameLayout layout,
   required List<math.Point<int>> cells,
-  required FateType fateType,
+  required FateRemovalEffectType effectType,
   required double progress,
 }) {
   final pulse = 1 - progress;
   final cellSide = layout.cellSize;
-  final isAngel = fateType == FateType.angel;
-  final coreColor = isAngel ? const Color(0xFFE0F2FE) : const Color(0xFF7F1D1D);
-  final ringColor = isAngel ? const Color(0xFF93C5FD) : const Color(0xFFEF4444);
+  final isAngel = effectType == FateRemovalEffectType.angelPurge;
+  final isDevilBlockBreak = effectType == FateRemovalEffectType.devilBlockBreak;
+  final coreColor = isAngel
+      ? const Color(0xFFE0F2FE)
+      : isDevilBlockBreak
+      ? const Color(0xFF16A34A)
+      : const Color(0xFF7F1D1D);
+  final ringColor = isAngel
+      ? const Color(0xFF93C5FD)
+      : isDevilBlockBreak
+      ? const Color(0xFF22C55E)
+      : const Color(0xFFEF4444);
 
   final ringPaint = Paint()
     ..style = PaintingStyle.stroke
@@ -179,6 +188,55 @@ void _drawFateRemovalOverlay({
     );
     canvas.drawRect(rect, fillPaint);
     canvas.drawRect(rect.deflate(1), ringPaint);
+
+    if (isAngel) {
+      final center = rect.center;
+      final sparkleCount = 4;
+      for (var i = 0; i < sparkleCount; i++) {
+        final angle = (math.pi * 2 / sparkleCount) * i + (pulse * 0.8);
+        final radius = (cellSide * 0.18) + (pulse * cellSide * 0.2);
+        final sparkleCenter = Offset(
+          center.dx + math.cos(angle) * radius,
+          center.dy + math.sin(angle) * radius,
+        );
+        final star = _buildStarPath(sparkleCenter, 1.8 + (pulse * 2.8));
+        DualBlocksRenderer._angelSparkPaint.color = const Color(
+          0xFFFFFFFF,
+        ).withValues(alpha: 0.35 + (pulse * 0.55));
+        canvas.drawPath(star, DualBlocksRenderer._angelSparkPaint);
+      }
+      continue;
+    }
+
+    if (isDevilBlockBreak) {
+      for (var i = 0; i < 4; i++) {
+        final x = rect.left + (cellSide * (0.2 + (i * 0.2)));
+        final fall = (pulse + (i * 0.08)) % 1.0;
+        final y = rect.top + (cellSide * fall);
+        DualBlocksRenderer._devilGreenDotPaint.color = const Color(
+          0xFF22C55E,
+        ).withValues(alpha: 0.2 + ((1 - fall) * 0.7));
+        canvas.drawCircle(
+          Offset(x, y),
+          1.2 + (pulse * 1.6),
+          DualBlocksRenderer._devilGreenDotPaint,
+        );
+      }
+      continue;
+    }
+
+    for (var i = 0; i < 4; i++) {
+      final x = rect.left + (cellSide * (0.18 + (i * 0.2)));
+      final rise = (pulse + (i * 0.09)) % 1.0;
+      final y = rect.bottom - (cellSide * rise);
+      final useRed = i.isEven;
+      final paint = useRed
+          ? DualBlocksRenderer._devilRedDotPaint
+          : DualBlocksRenderer._devilBlackDotPaint;
+      paint.color = (useRed ? const Color(0xFFEF4444) : const Color(0xFF111827))
+          .withValues(alpha: 0.18 + ((1 - rise) * 0.8));
+      canvas.drawCircle(Offset(x, y), 1.3 + (pulse * 1.4), paint);
+    }
   }
 }
 

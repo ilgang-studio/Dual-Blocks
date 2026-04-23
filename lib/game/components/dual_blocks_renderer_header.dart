@@ -11,6 +11,7 @@ void _drawHeader({
   required int angelStack,
   required int devilStack,
   required double effectTime,
+  required double scorePulseProgress,
   required bool showThemeMenu,
   required BlockThemeMode themeMode,
 }) {
@@ -26,6 +27,8 @@ void _drawHeader({
         )!
       : const Color(0xFFE2E8F0);
   final glowAlpha = isComboActive ? 0.45 + (neonPulse * 0.45) : 0.0;
+  final pulse = scorePulseProgress.clamp(0.0, 1.0);
+  final scoreFontSize = 30.0 + (pulse * 8.0);
 
   final topLabelPainter = TextPainter(
     text: TextSpan(
@@ -69,7 +72,7 @@ void _drawHeader({
       text: '$score',
       style: TextStyle(
         color: scoreColor,
-        fontSize: 30,
+        fontSize: scoreFontSize,
         fontWeight: FontWeight.w900,
         letterSpacing: 1.0,
         shadows: [

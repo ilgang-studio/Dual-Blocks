@@ -131,13 +131,13 @@ class DualBlocksRenderer {
       );
     }
     if (frame.fateRemovalCells.isNotEmpty &&
-        frame.fateRemovalType != null &&
+        frame.fateRemovalEffectType != null &&
         frame.fateRemovalProgress > 0) {
       _drawFateRemovalOverlay(
         canvas: canvas,
         layout: frame.layout,
         cells: frame.fateRemovalCells,
-        fateType: frame.fateRemovalType!,
+        effectType: frame.fateRemovalEffectType!,
         progress: frame.fateRemovalProgress.clamp(0, 1).toDouble(),
       );
     }
@@ -159,6 +159,7 @@ class DualBlocksRenderer {
       angelStack: frame.angelStack,
       devilStack: frame.devilStack,
       effectTime: frame.effectTime,
+      scorePulseProgress: frame.scorePulseProgress,
       showThemeMenu: frame.showThemeMenu,
       themeMode: frame.themeMode,
     );

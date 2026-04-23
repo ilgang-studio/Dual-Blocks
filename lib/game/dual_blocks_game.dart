@@ -48,10 +48,11 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   double _lineHighlightLeft = 0;
   double _scorePopupLeft = 0;
   int _scorePopupValue = 0;
+  double _scorePulseLeft = 0;
   double _placeSuccessLeft = 0;
   double _placeFailLeft = 0;
   final List<math.Point<int>> _pendingFateRemovalCells = [];
-  FateType? _pendingFateRemovalType;
+  FateRemovalEffectType? _pendingFateRemovalEffectType;
   double _fateRemovalLeft = 0;
   final math.Random _random = math.Random();
   int _angelStack = 0;
@@ -119,8 +120,10 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
       fillState: _currentFillState,
     );
     if (placed) {
-      score += selectedShape.cells.length;
-      _applyLineClear();
+      final placedScore = selectedShape.cells.length;
+      score += placedScore;
+      final clearGain = _applyLineClear();
+      _showScoreGainFeedback(placedScore + clearGain);
       _consumeSelectedTrayBlock();
     }
     return placed;
@@ -141,9 +144,6 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     _lastClearResult = result;
     _lineHighlightLeft = GameConstants.lineClearHighlightSeconds;
     _pendingClearResult = result;
-    final clearedCellCountEstimate = ScoreSystem.estimateClearedCellCount(
-      result,
-    );
     final clearedLineCount = result.fullRows.length + result.fullCols.length;
     final clearScore = ScoreSystem.calculateLineClearScore(
       comboCount: _comboCount,
@@ -165,9 +165,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     );
     _storedScore = scoreResult.nextStoredScore;
     score += scoreResult.grantedScore;
-    _scorePopupValue = scoreResult.grantedScore;
-    _scorePopupLeft = GameConstants.scorePopupSeconds;
-    return clearedCellCountEstimate;
+    return scoreResult.grantedScore;
   }
 
   void selectAngel() {
@@ -193,6 +191,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   void triggerAngel() {
     final payout = _storedScore;
     score += payout;
+    _showScoreGainFeedback(payout);
     _storedScore = 0;
 
     var effectSummary = '';
@@ -253,7 +252,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
       random: _random,
     );
     if (target == null) return 0;
-    _queueFateRemoval([target], FateType.angel);
+    _queueFateRemoval([target], FateRemovalEffectType.angelPurge);
     return 1;
   }
 
@@ -357,10 +356,11 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     _lineHighlightLeft = 0;
     _pendingClearResult = null;
     _pendingFateRemovalCells.clear();
-    _pendingFateRemovalType = null;
+    _pendingFateRemovalEffectType = null;
     _fateRemovalLeft = 0;
     _scorePopupLeft = 0;
     _scorePopupValue = 0;
+    _scorePulseLeft = 0;
     _placeSuccessLeft = 0;
     _placeFailLeft = 0;
   }
@@ -650,6 +650,10 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
       _scorePopupLeft -= dt;
       if (_scorePopupLeft < 0) _scorePopupLeft = 0;
     }
+    if (_scorePulseLeft > 0) {
+      _scorePulseLeft -= dt;
+      if (_scorePulseLeft < 0) _scorePulseLeft = 0;
+    }
 
     if (_placeSuccessLeft > 0) {
       _placeSuccessLeft -= dt;
@@ -705,7 +709,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
         clearCols: _lastClearResult.fullCols,
         showClearHighlight: _lineHighlightLeft > 0,
         fateRemovalCells: _pendingFateRemovalCells,
-        fateRemovalType: _pendingFateRemovalType,
+        fateRemovalEffectType: _pendingFateRemovalEffectType,
         fateRemovalProgress:
             _fateRemovalLeft / GameConstants.fateRemovalEffectSeconds,
         fateType: _activeFateType,
@@ -717,6 +721,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
         comboCount: _comboCount,
         scorePopupValue: _scorePopupValue,
         scorePopupProgress: _scorePopupLeft / GameConstants.scorePopupSeconds,
+        scorePulseProgress: _scorePulseLeft / GameConstants.scorePulseSeconds,
         placeSuccessProgress:
             _placeSuccessLeft / GameConstants.placementSuccessSeconds,
         placeFailProgress: _placeFailLeft / GameConstants.placementFailSeconds,
@@ -725,6 +730,13 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   }
 
   int get _visibleScore => _displayScore.round();
+
+  void _showScoreGainFeedback(int gainedScore) {
+    if (gainedScore <= 0) return;
+    _scorePopupValue = gainedScore;
+    _scorePopupLeft = GameConstants.scorePopupSeconds;
+    _scorePulseLeft = GameConstants.scorePulseSeconds;
+  }
 
   void _updateDisplayedScore(double dt) {
     if (_displayScoreTarget != score) {
@@ -823,6 +835,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   void _applyDestructionShape(int anchorRow, int anchorCol) {
     final selectedShape = _selectedShape;
     if (selectedShape == null) return;
+    final removalTargets = <math.Point<int>>[];
 
     for (final cell in selectedShape.cells) {
       final row = anchorRow + cell.y;
@@ -833,8 +846,13 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
           col >= GameConstants.boardSize) {
         continue;
       }
-      board[row][col] = CellState.empty;
+      if (!board[row][col].isOccupied) {
+        continue;
+      }
+      removalTargets.add(math.Point(col, row));
     }
+
+    _queueFateRemoval(removalTargets, FateRemovalEffectType.devilBlockBreak);
   }
 
   void _updatePreviewClearState() {
@@ -876,12 +894,15 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     );
   }
 
-  void _queueFateRemoval(List<math.Point<int>> cells, FateType type) {
+  void _queueFateRemoval(
+    List<math.Point<int>> cells,
+    FateRemovalEffectType effectType,
+  ) {
     if (cells.isEmpty) return;
     _pendingFateRemovalCells
       ..clear()
       ..addAll(cells);
-    _pendingFateRemovalType = type;
+    _pendingFateRemovalEffectType = effectType;
     _fateRemovalLeft = GameConstants.fateRemovalEffectSeconds;
   }
 
@@ -892,7 +913,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
       targetCount: targetCount,
     );
     if (picked.isEmpty) return 0;
-    _queueFateRemoval(picked, FateType.devil);
+    _queueFateRemoval(picked, FateRemovalEffectType.devilBlast);
     return picked.length;
   }
 
@@ -922,7 +943,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
       board[row][col] = CellState.empty;
     }
     _pendingFateRemovalCells.clear();
-    _pendingFateRemovalType = null;
+    _pendingFateRemovalEffectType = null;
     _fateRemovalLeft = 0;
     _evaluateGameOver();
   }
