@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../config/game_constants.dart';
 import '../models/block_shape.dart';
 import '../models/cell_state.dart';
+import '../models/fate_effect.dart';
 import '../models/game_layout.dart';
 
 class DualBlocksRenderer {
@@ -26,6 +27,10 @@ class DualBlocksRenderer {
     ..color = GameConstants.lineClearHighlight.withValues(alpha: 0.38);
   static final Paint _gameOverOverlayPaint = Paint()
     ..color = Colors.black.withValues(alpha: 0.45);
+  static final Paint _angelBadgePaint = Paint()
+    ..color = GameConstants.angelEffect.withValues(alpha: 0.25);
+  static final Paint _devilBadgePaint = Paint()
+    ..color = GameConstants.devilEffect.withValues(alpha: 0.25);
   
 
   static void render({
@@ -43,6 +48,10 @@ class DualBlocksRenderer {
     required Set<int> clearRows,
     required Set<int> clearCols,
     required bool showClearHighlight,
+    required FateType? fateType,
+    required String? fateReason,
+    required bool showFateBanner,
+    required int angelCharge,
   }) {
     _drawBoard(canvas, layout);
     _drawCells(canvas, layout, board);
@@ -63,6 +72,10 @@ class DualBlocksRenderer {
     );
     _drawScore(canvas, layout, score);
     _drawTurn(canvas, layout, turn);
+    _drawAngelCharge(canvas, layout, angelCharge);
+    if (showFateBanner && fateType != null && fateReason != null) {
+      _drawFateBanner(canvas, layout, fateType, fateReason);
+    }
     _drawGrid(canvas, layout);
     _drawBottomTray(canvas, layout);
     _drawTraySlots(
@@ -148,6 +161,28 @@ class DualBlocksRenderer {
       Offset(
         layout.scoreRect.left + 14,
         layout.scoreRect.top + 28,
+      ),
+    );
+  }
+
+  static void _drawAngelCharge(Canvas canvas, GameLayout layout, int angelCharge) {
+    final chargePainter = TextPainter(
+      text: TextSpan(
+        text: 'Bless: $angelCharge',
+        style: const TextStyle(
+          color: Color(0xFF86EFAC),
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+
+    chargePainter.paint(
+      canvas,
+      Offset(
+        layout.scoreRect.right - chargePainter.width - 12,
+        layout.scoreRect.top + 8,
       ),
     );
   }
@@ -356,6 +391,50 @@ class DualBlocksRenderer {
       Offset(
         layout.boardRect.center.dx - (hintPainter.width / 2),
         layout.boardRect.center.dy + 8,
+      ),
+    );
+  }
+
+  static void _drawFateBanner(
+    Canvas canvas,
+    GameLayout layout,
+    FateType type,
+    String reason,
+  ) {
+    final badgeRect = Rect.fromLTWH(
+      layout.scoreRect.right - 190,
+      layout.scoreRect.top + 24,
+      178,
+      20,
+    );
+    final badgePaint = type == FateType.angel ? _angelBadgePaint : _devilBadgePaint;
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(badgeRect, const Radius.circular(8)),
+      badgePaint,
+    );
+
+    final title = type == FateType.angel ? 'ANGEL' : 'DEVIL';
+    final textPainter = TextPainter(
+      text: TextSpan(
+        text: '$title: $reason',
+        style: TextStyle(
+          color: type == FateType.angel
+              ? const Color(0xFFD1FAE5)
+              : const Color(0xFFFEE2E2),
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+      maxLines: 1,
+      ellipsis: '...',
+    )..layout(maxWidth: badgeRect.width - 10);
+
+    textPainter.paint(
+      canvas,
+      Offset(
+        badgeRect.left + 5,
+        badgeRect.top + 3,
       ),
     );
   }

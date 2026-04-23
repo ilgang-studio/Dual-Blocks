@@ -22,10 +22,13 @@ class GameConstants {
   static const Color traySlotBackground = Color(0xFF1F2937);
   static const Color traySlotSelected = Color(0xFF60A5FA);
   static const Color lineClearHighlight = Color(0xFF22D3EE);
+  static const Color angelEffect = Color(0xFF34D399);
+  static const Color devilEffect = Color(0xFFF87171);
 
   static const int lineClearPointPerCell = 2;
   static const double lineClearHighlightSeconds = 0.22;
   static const int angelChargePerTrigger = 2;
   static const int devilScoreBonus = 5;
   static const int devilSpawnCount = 2;
+  static const double fateBannerSeconds = 1.4;
 }

@@ -36,6 +36,9 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   int _clearStreak = 0;
   int _noClearStreak = 0;
   int _angelCharge = 0;
+  FateType? _activeFateType;
+  String? _activeFateReason;
+  double _fateBannerLeft = 0;
 
   final List<List<CellState>> board = List.generate(
     GameConstants.boardSize,
@@ -109,14 +112,24 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     );
     if (decision == null) return;
 
+    _activeFateType = decision.type;
+    _activeFateReason = decision.reason;
+    _fateBannerLeft = GameConstants.fateBannerSeconds;
+
     if (decision.type == FateType.angel) {
       _angelCharge += GameConstants.angelChargePerTrigger;
+      debugPrint(
+        '[FATE][Turn $turn] ANGEL triggered: ${decision.reason}, charge=$_angelCharge',
+      );
       return;
     }
 
     // Devil effect: immediate reward + immediate risk.
     score += GameConstants.devilScoreBonus;
     _fillRandomEmptyCells(GameConstants.devilSpawnCount);
+    debugPrint(
+      '[FATE][Turn $turn] DEVIL triggered: ${decision.reason}, +${GameConstants.devilScoreBonus} score & +${GameConstants.devilSpawnCount} blocks',
+    );
   }
 
   void _fillRandomEmptyCells(int count) {
@@ -157,6 +170,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     if (_angelCharge <= 0) return;
     _clearRandomFilledCells(1);
     _angelCharge -= 1;
+    debugPrint('[FATE][Turn $turn] ANGEL aid consumed, charge=$_angelCharge');
   }
 
   math.Point<int>? screenToBoard(Offset p) {
@@ -226,6 +240,9 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     _clearStreak = 0;
     _noClearStreak = 0;
     _angelCharge = 0;
+    _activeFateType = null;
+    _activeFateReason = null;
+    _fateBannerLeft = 0;
     _refillTray(increaseTurn: false);
   }
 
@@ -368,6 +385,15 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
       _lineHighlightLeft = 0;
       _lastClearResult = const LineClearResult(fullRows: {}, fullCols: {});
     }
+
+    if (_fateBannerLeft > 0) {
+      _fateBannerLeft -= dt;
+      if (_fateBannerLeft <= 0) {
+        _fateBannerLeft = 0;
+        _activeFateType = null;
+        _activeFateReason = null;
+      }
+    }
   }
 
   @override
@@ -392,6 +418,10 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
       clearRows: _lastClearResult.fullRows,
       clearCols: _lastClearResult.fullCols,
       showClearHighlight: _lineHighlightLeft > 0,
+      fateType: _activeFateType,
+      fateReason: _activeFateReason,
+      showFateBanner: _fateBannerLeft > 0,
+      angelCharge: _angelCharge,
     );
   }
 
