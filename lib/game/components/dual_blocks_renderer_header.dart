@@ -4,6 +4,7 @@ void _drawHeader({
   required Canvas canvas,
   required GameLayout layout,
   required int score,
+  required int bestScore,
   required int turn,
   required int storedScore,
   required int comboCount,
@@ -27,9 +28,9 @@ void _drawHeader({
   final glowAlpha = isComboActive ? 0.45 + (neonPulse * 0.45) : 0.0;
 
   final topLabelPainter = TextPainter(
-    text: const TextSpan(
-      text: 'TOP 1000',
-      style: TextStyle(
+    text: TextSpan(
+      text: 'TOP $bestScore',
+      style: const TextStyle(
         color: Color(0xFFFDE68A),
         fontSize: 13,
         fontWeight: FontWeight.w900,

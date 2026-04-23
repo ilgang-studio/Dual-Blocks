@@ -12,6 +12,7 @@ class RenderFrameData {
   const RenderFrameData({
     required this.layout,
     required this.score,
+    required this.bestScore,
     required this.turn,
     required this.isGameOver,
     required this.board,
@@ -50,6 +51,7 @@ class RenderFrameData {
 
   final GameLayout layout;
   final int score;
+  final int bestScore;
   final int turn;
   final bool isGameOver;
   final List<List<CellState>> board;

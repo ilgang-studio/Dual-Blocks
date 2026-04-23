@@ -152,6 +152,7 @@ class DualBlocksRenderer {
       canvas: canvas,
       layout: frame.layout,
       score: frame.score,
+      bestScore: frame.bestScore,
       turn: frame.turn,
       storedScore: frame.storedScore,
       comboCount: frame.comboCount,
