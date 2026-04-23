@@ -10,6 +10,7 @@ import 'models/cell_state.dart';
 import 'models/game_layout.dart';
 import 'models/line_clear_result.dart';
 import 'systems/game_flow_system.dart';
+import 'systems/hand_generation_system.dart';
 import 'systems/layout_system.dart';
 import 'systems/line_clear_system.dart';
 import 'systems/placement_system.dart';
@@ -158,9 +159,11 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   }
 
   void _refillTray({required bool increaseTurn}) {
-    trayBlocks = BlockCatalog.randomTray(
+    trayBlocks = HandGenerationSystem.generateHand(
+      board,
       random: _random,
-      count: GameConstants.traySlotCount,
+      blockPool: BlockCatalog.pool,
+      handSize: GameConstants.traySlotCount,
     ).map<BlockShape?>((shape) => shape).toList(growable: false);
     selectedTrayIndex = trayBlocks.isNotEmpty ? 0 : null;
     if (increaseTurn) {
