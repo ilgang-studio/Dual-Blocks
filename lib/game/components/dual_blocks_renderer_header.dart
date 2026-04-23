@@ -28,50 +28,19 @@ void _drawHeader({
 
   final topLabelPainter = TextPainter(
     text: const TextSpan(
-      text: '최대점수',
+      text: 'TOP 1000',
       style: TextStyle(
-        color: Color(0xFF94A3B8),
-        fontSize: 10,
-        fontWeight: FontWeight.w800,
+        color: Color(0xFFFDE68A),
+        fontSize: 13,
+        fontWeight: FontWeight.w900,
+        letterSpacing: 0.6,
       ),
     ),
     textDirection: TextDirection.ltr,
   )..layout();
   topLabelPainter.paint(
     canvas,
-    Offset(layout.scoreRect.left + 28, layout.scoreRect.top + 8),
-  );
-
-  final bestScorePainter = TextPainter(
-    text: TextSpan(
-      text: '$score',
-      style: const TextStyle(
-        color: Color(0xFFE2E8F0),
-        fontSize: 14,
-        fontWeight: FontWeight.w900,
-      ),
-    ),
-    textDirection: TextDirection.ltr,
-  )..layout();
-  bestScorePainter.paint(
-    canvas,
-    Offset(layout.scoreRect.left + 28, layout.scoreRect.top + 20),
-  );
-
-  final crownPainter = TextPainter(
-    text: const TextSpan(
-      text: 'TOP',
-      style: TextStyle(
-        color: Color(0xFFFDE68A),
-        fontSize: 9,
-        fontWeight: FontWeight.w900,
-      ),
-    ),
-    textDirection: TextDirection.ltr,
-  )..layout();
-  crownPainter.paint(
-    canvas,
-    Offset(layout.scoreRect.left + 8, layout.scoreRect.top + 16),
+    Offset(layout.scoreRect.left + 10, layout.scoreRect.top + 14),
   );
 
   final centerTitlePainter = TextPainter(
