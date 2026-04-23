@@ -139,10 +139,21 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   }
 
   void _startNewGame() {
+    _clearBoard();
     score = 0;
     turn = 1;
     isGameOver = false;
     _refillTray(increaseTurn: false);
+  }
+
+  void _clearBoard() {
+    for (var row = 0; row < board.length; row++) {
+      for (var col = 0; col < board[row].length; col++) {
+        board[row][col] = CellState.empty;
+      }
+    }
+    _lastClearResult = const LineClearResult(fullRows: {}, fullCols: {});
+    _lineHighlightLeft = 0;
   }
 
   void _refillTray({required bool increaseTurn}) {
@@ -191,7 +202,10 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   @override
   void onTapDown(TapDownEvent event) {
     super.onTapDown(event);
-    if (isGameOver) return;
+    if (isGameOver) {
+      _startNewGame();
+      return;
+    }
 
     final screenPosition = Offset(
       event.localPosition.x,

@@ -24,6 +24,8 @@ class DualBlocksRenderer {
     ..color = const Color(0xFFF87171).withValues(alpha: 0.65);
   static final Paint _lineClearPaint = Paint()
     ..color = GameConstants.lineClearHighlight.withValues(alpha: 0.38);
+  static final Paint _gameOverOverlayPaint = Paint()
+    ..color = Colors.black.withValues(alpha: 0.45);
   
 
   static void render({
@@ -60,6 +62,7 @@ class DualBlocksRenderer {
       dragCanPlace: dragCanPlace,
     );
     _drawScore(canvas, layout, score);
+    _drawTurn(canvas, layout, turn);
     _drawGrid(canvas, layout);
     _drawBottomTray(canvas, layout);
     _drawTraySlots(
@@ -68,6 +71,9 @@ class DualBlocksRenderer {
       trayBlocks,
       selectedTrayIndex,
     );
+    if (isGameOver) {
+      _drawGameOverOverlay(canvas, layout);
+    }
   }
 
   static void _drawBoard(Canvas canvas, GameLayout layout) {
@@ -101,32 +107,58 @@ class DualBlocksRenderer {
   }
 
   static void _drawScore(Canvas canvas, GameLayout layout, int score) {
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        layout.scoreRect,
-        const Radius.circular(GameConstants.cornerRadius),
-      ),
-      _scorePaint,
-    );
+    _drawScorePanelBackground(canvas, layout);
 
-    final textPainter = TextPainter(
+    final scorePainter = TextPainter(
       text: TextSpan(
         text: 'Score: $score',
         style: const TextStyle(
           color: Colors.white,
-          fontSize: 18,
+          fontSize: 17,
           fontWeight: FontWeight.bold,
         ),
       ),
       textDirection: TextDirection.ltr,
     )..layout();
 
-    textPainter.paint(
+    scorePainter.paint(
       canvas,
       Offset(
-        layout.scoreRect.center.dx - (textPainter.width / 2),
-        layout.scoreRect.center.dy - (textPainter.height / 2),
+        layout.scoreRect.left + 14,
+        layout.scoreRect.top + 8,
       ),
+    );
+  }
+
+  static void _drawTurn(Canvas canvas, GameLayout layout, int turn) {
+    final turnPainter = TextPainter(
+      text: TextSpan(
+        text: 'Turn: $turn',
+        style: const TextStyle(
+          color: Color(0xFFBFDBFE),
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+
+    turnPainter.paint(
+      canvas,
+      Offset(
+        layout.scoreRect.left + 14,
+        layout.scoreRect.top + 28,
+      ),
+    );
+  }
+
+  static void _drawScorePanelBackground(Canvas canvas, GameLayout layout) {
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        layout.scoreRect,
+        const Radius.circular(GameConstants.cornerRadius),
+      ),
+      _scorePaint,
     );
   }
 
@@ -281,5 +313,50 @@ class DualBlocksRenderer {
       );
       canvas.drawRect(rect, _lineClearPaint);
     }
+  }
+
+  static void _drawGameOverOverlay(Canvas canvas, GameLayout layout) {
+    canvas.drawRect(layout.boardRect, _gameOverOverlayPaint);
+
+    final titlePainter = TextPainter(
+      text: const TextSpan(
+        text: 'GAME OVER',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 24,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 1.2,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+
+    final hintPainter = TextPainter(
+      text: const TextSpan(
+        text: 'Tap anywhere to restart',
+        style: TextStyle(
+          color: Color(0xFFD1D5DB),
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+
+    titlePainter.paint(
+      canvas,
+      Offset(
+        layout.boardRect.center.dx - (titlePainter.width / 2),
+        layout.boardRect.center.dy - titlePainter.height,
+      ),
+    );
+
+    hintPainter.paint(
+      canvas,
+      Offset(
+        layout.boardRect.center.dx - (hintPainter.width / 2),
+        layout.boardRect.center.dy + 8,
+      ),
+    );
   }
 }
