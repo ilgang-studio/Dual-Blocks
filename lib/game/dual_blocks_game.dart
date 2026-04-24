@@ -25,13 +25,23 @@ import 'systems/placement_system.dart';
 import 'systems/score_system.dart';
 import 'systems/turn_flow_system.dart';
 
+part 'dual_blocks_game_lifecycle.dart';
+part 'dual_blocks_game_tray.dart';
+part 'dual_blocks_game_placement.dart';
+part 'dual_blocks_game_fate.dart';
+part 'dual_blocks_game_score.dart';
+part 'dual_blocks_game_input.dart';
+
 class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   static const int _rainbowPaletteCount = 7;
 
+  // ── Game state ───────────────────────────────────────────────────────────────
   GameLayout? layout;
   int score = 0;
   int turn = 1;
   bool isGameOver = false;
+
+  // ── Tray state ───────────────────────────────────────────────────────────────
   List<BlockShape?> trayBlocks = [];
   List<int?> trayBlockColorIndices = [];
   List<FateType?> trayFates = [];
@@ -39,49 +49,66 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   int? selectedTrayIndex;
   bool isAlignmentTurn = false;
   bool _alignmentChoicePending = false;
+
+  // ── Drag state ───────────────────────────────────────────────────────────────
   bool _isDraggingBlock = false;
   BlockShape? _draggingShape;
   Offset? _dragScreenPosition;
   PreviewClearResult _previewClearResult = PreviewClearResult.empty;
+
+  // ── Line-clear state ─────────────────────────────────────────────────────────
   LineClearResult _lastClearResult = const LineClearResult(
     fullRows: {},
     fullCols: {},
   );
   LineClearResult? _pendingClearResult;
   double _lineHighlightLeft = 0;
+
+  // ── UI feedback timers ───────────────────────────────────────────────────────
   double _scorePopupLeft = 0;
   int _scorePopupValue = 0;
   double _scorePulseLeft = 0;
   double _placeSuccessLeft = 0;
   double _placeFailLeft = 0;
+
+  // ── Fate removal state ───────────────────────────────────────────────────────
   final List<math.Point<int>> _pendingFateRemovalCells = [];
   FateRemovalEffectType? _pendingFateRemovalEffectType;
   double _fateRemovalLeft = 0;
+
+  // ── Fate / angel / devil state ───────────────────────────────────────────────
   final math.Random _random = math.Random();
   int _angelStack = 0;
   int _devilStack = 0;
   int _storedScore = 0;
   int _comboCount = 0;
   int _comboMissStreak = 0;
+  double _nextClearScoreMultiplier = 1.0;
+  bool _angelEasyHandBoostPending = false;
+  DevilGiftType? _pendingDevilGift;
+  DevilGiftType? _selectedDevilGift;
+  FateType? _selectedFate;
+  FateType? _activeFateType;
+  String? _activeFateReason;
+  double _fateBannerLeft = 0;
+
+  // ── Score display animation ──────────────────────────────────────────────────
   int _bestScore = 0;
   double _displayScore = 0;
   double _displayScoreStart = 0;
   int _displayScoreTarget = 0;
   double _displayScoreAnimElapsed = 0;
   double _displayScoreAnimDuration = 0;
-  double _nextClearScoreMultiplier = 1.0;
-  bool _angelEasyHandBoostPending = false;
-  DevilGiftType? _pendingDevilGift;
-  DevilGiftType? _selectedDevilGift;
+
+  // ── Effects / theme ──────────────────────────────────────────────────────────
   double _effectTime = 0;
-  FateType? _selectedFate;
-  FateType? _activeFateType;
-  String? _activeFateReason;
-  double _fateBannerLeft = 0;
   BlockThemeMode _themeMode = BlockThemeMode.solid;
   bool _showThemeMenu = false;
+
+  // ── Systems ──────────────────────────────────────────────────────────────────
   final AlignmentTurnSystem _alignmentTurnSystem = AlignmentTurnSystem();
 
+  // ── Board ────────────────────────────────────────────────────────────────────
   final List<List<CellState>> board = List.generate(
     GameConstants.boardSize,
     (_) => List.generate(GameConstants.boardSize, (_) => CellState.empty),
@@ -91,227 +118,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     (_) => List<int?>.filled(GameConstants.boardSize, null),
   );
 
-  bool canPlace(int row, int col) {
-    if (_pendingClearResult != null) return false;
-    if (_pendingFateRemovalCells.isNotEmpty) return false;
-    if (_isSelectedDestructionBlock) {
-      return _canApplyDestructionShape(row, col);
-    }
-    final selectedShape = _selectedShape;
-    if (selectedShape == null) return false;
-    return PlacementSystem.canPlaceShape(
-      board: board,
-      anchorRow: row,
-      anchorCol: col,
-      shape: selectedShape,
-    );
-  }
-
-  bool placeBlock(int row, int col) {
-    if (isGameOver) return false;
-    if (_isSelectedDestructionBlock) {
-      if (!canPlace(row, col)) return false;
-      _applyDestructionShape(row, col);
-      _consumeSelectedTrayBlock();
-      return true;
-    }
-
-    final selectedShape = _selectedShape;
-    if (selectedShape == null) return false;
-
-    final placed = PlacementSystem.placeShape(
-      board: board,
-      anchorRow: row,
-      anchorCol: col,
-      shape: selectedShape,
-      fillState: _currentFillState,
-    );
-    if (placed) {
-      _paintPlacedBlockColor(row, col, selectedShape);
-      final placedScore = selectedShape.cells.length;
-      score += placedScore;
-      final clearGain = _applyLineClear();
-      _showScoreGainFeedback(placedScore + clearGain);
-      _consumeSelectedTrayBlock();
-    }
-    return placed;
-  }
-
-  int _applyLineClear() {
-    final result = LineClearSystem.findFilledLines(board);
-    if (!result.hasAny) {
-      if (_comboCount > 0 && _comboMissStreak == 0) {
-        _comboMissStreak = 1;
-      } else {
-        _comboCount = 0;
-        _comboMissStreak = 0;
-      }
-      return 0;
-    }
-
-    _lastClearResult = result;
-    _lineHighlightLeft = GameConstants.lineClearHighlightSeconds;
-    _pendingClearResult = result;
-    final clearedLineCount = result.fullRows.length + result.fullCols.length;
-    final clearScore = ScoreSystem.calculateLineClearScore(
-      comboCount: _comboCount,
-      clearedLineCount: clearedLineCount,
-    );
-    _comboMissStreak = 0;
-    _comboCount += 1;
-
-    var scoredClear = clearScore;
-    if (_nextClearScoreMultiplier > 1.0) {
-      scoredClear = (clearScore * _nextClearScoreMultiplier).round();
-      _nextClearScoreMultiplier = 1.0;
-    }
-
-    final scoreResult = ScoreSystem.applyStoredScorePolicy(
-      rawClearScore: scoredClear,
-      hasAngelStack: _angelStack > 0,
-      storedScore: _storedScore,
-    );
-    _storedScore = scoreResult.nextStoredScore;
-    score += scoreResult.grantedScore;
-    return scoreResult.grantedScore;
-  }
-
-  void selectAngel() {
-    _angelStack += 1;
-    _devilStack = 0;
-    _selectedFate = FateType.angel;
-    if (_angelStack >= GameConstants.fateTriggerStack) {
-      triggerAngel();
-      _angelStack = 0;
-    }
-  }
-
-  void selectDevil() {
-    _devilStack += 1;
-    _angelStack = 0;
-    _selectedFate = FateType.devil;
-    if (_devilStack >= GameConstants.fateTriggerStack) {
-      triggerDevil();
-      _devilStack = 0;
-    }
-  }
-
-  void triggerAngel() {
-    final payout = _storedScore;
-    score += payout;
-    _showScoreGainFeedback(payout);
-    _storedScore = 0;
-
-    var effectSummary = '';
-    switch (GameConstants.angelEffectMode) {
-      case AngelEffectMode.rescueCleanup:
-        final removed = _rescueCleanup();
-        effectSummary = 'Rescue cleanup removed $removed cell';
-        break;
-      case AngelEffectMode.scoreShield:
-        _nextClearScoreMultiplier = GameConstants.angelNextClearScoreMultiplier;
-        effectSummary =
-            'Next clear score x${GameConstants.angelNextClearScoreMultiplier.toStringAsFixed(1)}';
-        break;
-      case AngelEffectMode.handRefine:
-        _angelEasyHandBoostPending = true;
-        effectSummary = 'Next normal hand refined to easier blocks';
-        break;
-    }
-
-    _showFateBanner(FateType.angel, 'Stored +$payout, $effectSummary');
-    debugPrint('[Angel Triggered] payout=$payout effect=$effectSummary');
-    _evaluateGameOver();
-  }
-
-  void triggerDevil() {
-    final selectedGift = FateEffectSystem.chooseDevilGiftType(
-      random: _random,
-      preferred: _selectedDevilGift,
-    );
-    _selectedDevilGift = null;
-
-    score = (score * (1 - GameConstants.devilScorePenaltyRatio)).toInt();
-
-    String summary;
-    if (selectedGift == DevilGiftType.greedBestBlock) {
-      _pendingDevilGift = DevilGiftType.greedBestBlock;
-      summary = 'Greed: next hand gets best block';
-    } else {
-      _pendingDevilGift = null;
-      final removed = _queueDevilDestructionRemoval(2);
-      summary = 'Destruction: collapse $removed block(s)';
-    }
-
-    _showFateBanner(FateType.devil, '$summary, -10% score');
-    debugPrint('[Devil Triggered] $summary');
-    _evaluateGameOver();
-  }
-
-  void _showFateBanner(FateType type, String reason) {
-    _activeFateType = type;
-    _activeFateReason = reason;
-    _fateBannerLeft = GameConstants.fateBannerSeconds;
-  }
-
-  int _rescueCleanup() {
-    final target = FateEffectSystem.findRescueCleanupCell(
-      board: board,
-      random: _random,
-    );
-    if (target == null) return 0;
-    _queueFateRemoval([target], FateRemovalEffectType.angelPurge);
-    return 1;
-  }
-
-  math.Point<int>? screenToBoard(Offset p) {
-    final currentLayout = layout;
-    if (currentLayout == null) return null;
-    return currentLayout.screenToBoard(p);
-  }
-
-  bool _tryPlaceFromDrag() {
-    final draggingShape = _draggingShape;
-    final screenPosition = _dragScreenPosition;
-    if (!_isDraggingBlock || draggingShape == null || screenPosition == null) {
-      return false;
-    }
-    if (_pendingFateRemovalCells.isNotEmpty) return false;
-
-    final boardPoint = screenToBoard(screenPosition);
-    if (boardPoint == null) return false;
-
-    final col = boardPoint.x;
-    final row = boardPoint.y;
-    if (!canPlace(row, col)) return false;
-    final placed = placeBlock(row, col);
-    if (placed) {
-      _previewClearResult = PreviewClearResult.empty;
-    }
-    return placed;
-  }
-
-  bool trySelectTrayFromScreen(Offset screenPosition) {
-    if (isGameOver) return false;
-    if (_pendingClearResult != null) return false;
-    if (_pendingFateRemovalCells.isNotEmpty) return false;
-    final currentLayout = layout;
-    if (currentLayout == null) return false;
-
-    final index = currentLayout.screenToTrayIndex(screenPosition);
-    if (index == null) return false;
-    if (index >= trayBlocks.length) return false;
-    if (trayBlocks[index] == null) return false;
-
-    if (_alignmentChoicePending) {
-      _applyAlignmentChoice(index);
-      return true;
-    }
-
-    selectedTrayIndex = index;
-    _selectedFate = trayFates[index];
-    return true;
-  }
+  // ── FlameGame overrides ──────────────────────────────────────────────────────
 
   @override
   Future<void> onLoad() async {
@@ -326,346 +133,21 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     layout = LayoutSystem.calculate(size);
   }
 
-  void _startNewGame() {
-    _clearBoard();
-    score = 0;
-    turn = 1;
-    isGameOver = false;
-    _angelStack = 0;
-    _devilStack = 0;
-    _storedScore = 0;
-    _comboCount = 0;
-    _comboMissStreak = 0;
-    _displayScore = 0;
-    _displayScoreStart = 0;
-    _displayScoreTarget = 0;
-    _displayScoreAnimElapsed = 0;
-    _displayScoreAnimDuration = 0;
-    _nextClearScoreMultiplier = 1.0;
-    _angelEasyHandBoostPending = false;
-    _pendingDevilGift = null;
-    _selectedDevilGift = null;
-    _effectTime = 0;
-    _activeFateType = null;
-    _activeFateReason = null;
-    _fateBannerLeft = 0;
-    _showThemeMenu = false;
-    _alignmentTurnSystem.turnCounter = 1;
-    _refillTray(increaseTurn: false);
-  }
-
-  void _clearBoard() {
-    for (var row = 0; row < board.length; row++) {
-      for (var col = 0; col < board[row].length; col++) {
-        board[row][col] = CellState.empty;
-        _boardColorIndices[row][col] = null;
-      }
-    }
-    _lastClearResult = const LineClearResult(fullRows: {}, fullCols: {});
-    _lineHighlightLeft = 0;
-    _pendingClearResult = null;
-    _pendingFateRemovalCells.clear();
-    _pendingFateRemovalEffectType = null;
-    _fateRemovalLeft = 0;
-    _scorePopupLeft = 0;
-    _scorePopupValue = 0;
-    _scorePulseLeft = 0;
-    _placeSuccessLeft = 0;
-    _placeFailLeft = 0;
-  }
-
-  void _refillTray({required bool increaseTurn}) {
-    isAlignmentTurn = _alignmentTurnSystem.shouldStartAlignmentTurn();
-    if (isAlignmentTurn) {
-      _buildAlignmentTray();
-    } else {
-      _buildNormalTray();
-    }
-
-    if (increaseTurn) {
-      turn += 1;
-    }
-    _evaluateGameOver();
-  }
-
-  void _evaluateGameOver() {
-    if (_pendingClearResult != null) {
-      isGameOver = false;
-      return;
-    }
-    if (_pendingFateRemovalCells.isNotEmpty) {
-      isGameOver = false;
-      return;
-    }
-    if (_alignmentChoicePending) {
-      isGameOver = false;
-      return;
-    }
-    final hasPlayable = GameFlowSystem.hasAnyPlaceableShape(
-      board: board,
-      trayBlocks: trayBlocks,
-    );
-    isGameOver = !hasPlayable;
-    if (isGameOver) {
-      _clearDragState();
-    }
-  }
-
-  BlockShape? get _selectedShape {
-    final index = selectedTrayIndex;
-    if (index == null) return null;
-    if (index < 0 || index >= trayBlocks.length) return null;
-    return trayBlocks[index];
-  }
-
-  int? get _selectedTrayBlockColorIndex {
-    final index = selectedTrayIndex;
-    if (index == null) return null;
-    if (index < 0 || index >= trayBlockColorIndices.length) return null;
-    return trayBlockColorIndices[index];
-  }
-
-  void _consumeSelectedTrayBlock() {
-    final index = selectedTrayIndex;
-    if (index == null) return;
-    if (index < 0 || index >= trayBlocks.length) return;
-
-    trayBlocks[index] = null;
-    if (index < trayBlockColorIndices.length) {
-      trayBlockColorIndices[index] = null;
-    }
-    if (index < trayFates.length) {
-      trayFates[index] = null;
-    }
-    if (index < trayDevilGifts.length) {
-      trayDevilGifts[index] = null;
-    }
-    _selectedDevilGift = null;
-
-    selectedTrayIndex = TurnFlowSystem.nextSelectedIndex(trayBlocks);
-    if (TurnFlowSystem.shouldRefillTray(trayBlocks)) {
-      _refillTray(increaseTurn: true);
-      return;
-    }
-    _evaluateGameOver();
-  }
-
-  void _buildNormalTray() {
-    final useAngelHandRefine = _angelEasyHandBoostPending;
-    trayBlocks = HandGenerationSystem.generateHand(
-      board,
-      random: _random,
-      blockPool: BlockCatalog.pool,
-      handSize: GameConstants.traySlotCount,
-      weightResolver: useAngelHandRefine ? _angelRefinedWeight : null,
-    ).map<BlockShape?>((shape) => shape).toList(growable: false);
-    _angelEasyHandBoostPending = false;
-    _applyPendingDevilGift();
-    trayBlockColorIndices = List<int?>.generate(
-      trayBlocks.length,
-      (_) => _nextRainbowColorIndex(),
-      growable: false,
-    );
-
-    trayFates = List<FateType?>.filled(GameConstants.traySlotCount, null);
-    trayDevilGifts = List<DevilGiftType?>.filled(
-      GameConstants.traySlotCount,
-      null,
-    );
-    selectedTrayIndex = trayBlocks.isNotEmpty ? 0 : null;
-    _selectedFate = selectedTrayIndex == null
-        ? null
-        : trayFates[selectedTrayIndex!];
-    _alignmentChoicePending = false;
-  }
-
-  double _angelRefinedWeight(BlockShape shape) {
-    final multiplier = _isEasyShape(shape)
-        ? GameConstants.angelEasyWeightMultiplier
-        : GameConstants.angelHardWeightMultiplier;
-    return shape.weight * multiplier;
-  }
-
-  bool _isEasyShape(BlockShape shape) {
-    return shape.cells.length <= 3;
-  }
-
-  void _applyPendingDevilGift() {
-    final pendingGift = _pendingDevilGift;
-    if (pendingGift == null) return;
-    if (trayBlocks.isEmpty) {
-      _pendingDevilGift = null;
-      return;
-    }
-
-    final replaceIndex = _random.nextInt(trayBlocks.length);
-    if (pendingGift == DevilGiftType.greedBestBlock) {
-      final best = DevilBlockSystem.findBestBlock(
-        board: board,
-        blockPool: BlockCatalog.pool,
-      );
-      if (best != null) {
-        trayBlocks[replaceIndex] = best;
-      }
-    } else {
-      final aid = DevilBlockSystem.pickDestructionAidBlock(
-        board: board,
-        blockPool: BlockCatalog.pool,
-      );
-      if (aid != null) {
-        trayBlocks[replaceIndex] = aid;
-      }
-    }
-
-    _pendingDevilGift = null;
-  }
-
-  void _buildAlignmentTray() {
-    final normal = _pickPlaceableRandomShape();
-    final angel = _pickPlaceableRandomShape();
-    final devil = _pickPlaceableRandomShape();
-
-    trayBlocks = <BlockShape?>[normal, angel, devil];
-    trayBlockColorIndices = <int?>[_nextRainbowColorIndex(), null, null];
-    trayFates = <FateType?>[null, FateType.angel, FateType.devil];
-    trayDevilGifts = <DevilGiftType?>[
-      null,
-      null,
-      _random.nextBool()
-          ? DevilGiftType.greedBestBlock
-          : DevilGiftType.destructionAid,
-    ];
-    selectedTrayIndex = null;
-    _selectedFate = null;
-    _selectedDevilGift = null;
-    _alignmentChoicePending = true;
-  }
-
-  BlockShape _pickPlaceableRandomShape() {
-    final placeable = BlockCatalog.pool
-        .where((shape) => HandGenerationSystem.canPlaceAnywhere(board, shape))
-        .toList(growable: false);
-    final source = placeable.isNotEmpty ? placeable : BlockCatalog.pool;
-    return source[_random.nextInt(source.length)];
-  }
-
-  void _applyAlignmentChoice(int index) {
-    final chosenBlock = trayBlocks[index];
-    final chosenFate = trayFates[index];
-    final chosenDevilGift = index < trayDevilGifts.length
-        ? trayDevilGifts[index]
-        : null;
-    if (chosenBlock == null) return;
-
-    for (var i = 0; i < trayBlocks.length; i++) {
-      if (i == index) continue;
-      trayBlocks[i] = null;
-      if (i < trayBlockColorIndices.length) {
-        trayBlockColorIndices[i] = null;
-      }
-    }
-    selectedTrayIndex = index;
-    _selectedFate = chosenFate;
-    _selectedDevilGift = chosenFate == FateType.devil ? chosenDevilGift : null;
-    _alignmentChoicePending = false;
-    isAlignmentTurn = false;
-
-    if (chosenFate == FateType.angel) {
-      selectAngel();
-    } else if (chosenFate == FateType.devil) {
-      selectDevil();
-    }
-  }
-
-  @override
-  void onTapDown(TapDownEvent event) {
-    super.onTapDown(event);
-    if (isGameOver) {
-      _startNewGame();
-      return;
-    }
-
-    final screenPosition = Offset(event.localPosition.x, event.localPosition.y);
-    if (_handleThemeTap(screenPosition)) return;
-    final selected = trySelectTrayFromScreen(screenPosition);
-    if (selected) return;
-  }
-
-  @override
-  void onDragStart(DragStartEvent event) {
-    super.onDragStart(event);
-    if (isGameOver) return;
-    if (_showThemeMenu) return;
-    if (_pendingClearResult != null) return;
-    if (_pendingFateRemovalCells.isNotEmpty) return;
-
-    final screenPosition = Offset(event.localPosition.x, event.localPosition.y);
-    final selected = trySelectTrayFromScreen(screenPosition);
-    if (!selected) return;
-
-    _isDraggingBlock = true;
-    _draggingShape = _selectedShape;
-    _dragScreenPosition = screenPosition;
-    _updatePreviewClearState();
-  }
-
-  @override
-  void onDragUpdate(DragUpdateEvent event) {
-    super.onDragUpdate(event);
-    if (isGameOver) return;
-    if (!_isDraggingBlock) return;
-
-    _dragScreenPosition = Offset(
-      event.canvasEndPosition.x,
-      event.canvasEndPosition.y,
-    );
-    _updatePreviewClearState();
-  }
-
-  @override
-  void onDragEnd(DragEndEvent event) {
-    super.onDragEnd(event);
-    if (isGameOver) {
-      _clearDragState();
-      return;
-    }
-    _tryPlaceFromDrag();
-    _clearDragState();
-  }
-
-  @override
-  void onDragCancel(DragCancelEvent event) {
-    super.onDragCancel(event);
-    _clearDragState();
-  }
-
-  void _clearDragState() {
-    _isDraggingBlock = false;
-    _draggingShape = null;
-    _dragScreenPosition = null;
-    _previewClearResult = PreviewClearResult.empty;
-  }
-
   @override
   void update(double dt) {
     super.update(dt);
     _effectTime += dt;
     _updateDisplayedScore(dt);
-    if (score > _bestScore) {
-      _bestScore = score;
-    }
+    if (score > _bestScore) _bestScore = score;
+
     if (_pendingFateRemovalCells.isNotEmpty && _fateRemovalLeft > 0) {
       _fateRemovalLeft -= dt;
-      if (_fateRemovalLeft <= 0) {
-        _resolvePendingFateRemoval();
-      }
+      if (_fateRemovalLeft <= 0) _resolvePendingFateRemoval();
     }
 
     if (_pendingClearResult != null && _lineHighlightLeft > 0) {
       _lineHighlightLeft -= dt;
-      if (_lineHighlightLeft <= 0) {
-        _resolvePendingLineClear();
-      }
+      if (_lineHighlightLeft <= 0) _resolvePendingLineClear();
     } else if (_lineHighlightLeft > 0) {
       _lineHighlightLeft -= dt;
       if (_lineHighlightLeft <= 0) {
@@ -682,17 +164,14 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
       _scorePulseLeft -= dt;
       if (_scorePulseLeft < 0) _scorePulseLeft = 0;
     }
-
     if (_placeSuccessLeft > 0) {
       _placeSuccessLeft -= dt;
       if (_placeSuccessLeft < 0) _placeSuccessLeft = 0;
     }
-
     if (_placeFailLeft > 0) {
       _placeFailLeft -= dt;
       if (_placeFailLeft < 0) _placeFailLeft = 0;
     }
-
     if (_fateBannerLeft > 0) {
       _fateBannerLeft -= dt;
       if (_fateBannerLeft <= 0) {
@@ -706,7 +185,6 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   @override
   void render(Canvas canvas) {
     super.render(canvas);
-
     final currentLayout = layout;
     if (currentLayout == null) return;
 
@@ -759,281 +237,63 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     );
   }
 
-  int get _visibleScore => _displayScore.round();
-
-  void _showScoreGainFeedback(int gainedScore) {
-    if (gainedScore <= 0) return;
-    _scorePopupValue = gainedScore;
-    _scorePopupLeft = GameConstants.scorePopupSeconds;
-    _scorePulseLeft = GameConstants.scorePulseSeconds;
+  @override
+  void onTapDown(TapDownEvent event) {
+    super.onTapDown(event);
+    if (isGameOver) {
+      _startNewGame();
+      return;
+    }
+    final pos = Offset(event.localPosition.x, event.localPosition.y);
+    if (_handleThemeTap(pos)) return;
+    trySelectTrayFromScreen(pos);
   }
 
-  void _updateDisplayedScore(double dt) {
-    if (_displayScoreTarget != score) {
-      _startScoreCountAnimation(score);
-    }
+  @override
+  void onDragStart(DragStartEvent event) {
+    super.onDragStart(event);
+    if (isGameOver) return;
+    if (_showThemeMenu) return;
+    if (_pendingClearResult != null) return;
+    if (_pendingFateRemovalCells.isNotEmpty) return;
 
-    if ((_displayScore - _displayScoreTarget).abs() < 0.001) {
-      _displayScore = _displayScoreTarget.toDouble();
-      return;
-    }
-    if (_displayScoreAnimDuration <= 0) {
-      _displayScore = _displayScoreTarget.toDouble();
-      return;
-    }
+    final pos = Offset(event.localPosition.x, event.localPosition.y);
+    if (!trySelectTrayFromScreen(pos)) return;
 
-    _displayScoreAnimElapsed += dt;
-    final t = (_displayScoreAnimElapsed / _displayScoreAnimDuration).clamp(
-      0.0,
-      1.0,
+    _isDraggingBlock = true;
+    _draggingShape = _selectedShape;
+    _dragScreenPosition = pos;
+    _updatePreviewClearState();
+  }
+
+  @override
+  void onDragUpdate(DragUpdateEvent event) {
+    super.onDragUpdate(event);
+    if (isGameOver) return;
+    if (!_isDraggingBlock) return;
+
+    _dragScreenPosition = Offset(
+      event.canvasEndPosition.x,
+      event.canvasEndPosition.y,
     );
-    final eased = Curves.easeOutCubic.transform(t);
-    _displayScore =
-        _displayScoreStart +
-        ((_displayScoreTarget - _displayScoreStart) * eased);
-
-    if (t >= 1.0) {
-      _displayScore = _displayScoreTarget.toDouble();
-    }
+    _updatePreviewClearState();
   }
 
-  void _startScoreCountAnimation(int target) {
-    _displayScoreStart = _displayScore;
-    _displayScoreTarget = target;
-    _displayScoreAnimElapsed = 0;
-
-    final delta = (target - _displayScoreStart).abs();
-    final normalized = (delta / 180).clamp(0.0, 1.0);
-    _displayScoreAnimDuration = 0.8 - (0.65 * normalized);
-  }
-
-  math.Point<int>? get _dragBoardPoint {
-    final screenPosition = _dragScreenPosition;
-    if (screenPosition == null) return null;
-    return screenToBoard(screenPosition);
-  }
-
-  bool get _dragCanPlace {
-    if (isGameOver) return false;
-    final dragBoardPoint = _dragBoardPoint;
-    if (dragBoardPoint == null) return false;
-    final row = dragBoardPoint.y;
-    final col = dragBoardPoint.x;
-    return canPlace(row, col);
-  }
-
-  CellState get _currentFillState {
-    if (_selectedFate == FateType.angel) return CellState.angelFilled;
-    if (_selectedFate == FateType.devil) return CellState.devilFilled;
-    return CellState.filled;
-  }
-
-  DevilGiftType? get _selectedTrayDevilGift {
-    final index = selectedTrayIndex;
-    if (index == null) return null;
-    if (index < 0 || index >= trayDevilGifts.length) return null;
-    return trayDevilGifts[index];
-  }
-
-  bool get _isSelectedDestructionBlock {
-    return _selectedFate == FateType.devil &&
-        _selectedTrayDevilGift == DevilGiftType.destructionAid;
-  }
-
-  bool _canApplyDestructionShape(int anchorRow, int anchorCol) {
-    final selectedShape = _selectedShape;
-    if (selectedShape == null) return false;
-
-    var hasOccupiedTarget = false;
-    for (final cell in selectedShape.cells) {
-      final row = anchorRow + cell.y;
-      final col = anchorCol + cell.x;
-      if (row < 0 ||
-          row >= GameConstants.boardSize ||
-          col < 0 ||
-          col >= GameConstants.boardSize) {
-        return false;
-      }
-      if (board[row][col].isOccupied) {
-        hasOccupiedTarget = true;
-      }
-    }
-
-    return hasOccupiedTarget;
-  }
-
-  void _applyDestructionShape(int anchorRow, int anchorCol) {
-    final selectedShape = _selectedShape;
-    if (selectedShape == null) return;
-    final removalTargets = <math.Point<int>>[];
-
-    for (final cell in selectedShape.cells) {
-      final row = anchorRow + cell.y;
-      final col = anchorCol + cell.x;
-      if (row < 0 ||
-          row >= GameConstants.boardSize ||
-          col < 0 ||
-          col >= GameConstants.boardSize) {
-        continue;
-      }
-      if (!board[row][col].isOccupied) {
-        continue;
-      }
-      removalTargets.add(math.Point(col, row));
-    }
-
-    _queueFateRemoval(removalTargets, FateRemovalEffectType.devilBlockBreak);
-  }
-
-  void _paintPlacedBlockColor(int anchorRow, int anchorCol, BlockShape shape) {
-    if (_currentFillState != CellState.filled) return;
-    final colorIndex = _selectedTrayBlockColorIndex ?? _nextRainbowColorIndex();
-    for (final cell in shape.cells) {
-      final row = anchorRow + cell.y;
-      final col = anchorCol + cell.x;
-      if (row < 0 ||
-          row >= GameConstants.boardSize ||
-          col < 0 ||
-          col >= GameConstants.boardSize) {
-        continue;
-      }
-      _boardColorIndices[row][col] = colorIndex;
-    }
-  }
-
-  void _updatePreviewClearState() {
-    if (!_isDraggingBlock) {
-      _previewClearResult = PreviewClearResult.empty;
+  @override
+  void onDragEnd(DragEndEvent event) {
+    super.onDragEnd(event);
+    if (isGameOver) {
+      _clearDragState();
       return;
     }
-    if (_isSelectedDestructionBlock) {
-      _previewClearResult = PreviewClearResult.empty;
-      return;
-    }
-
-    final selectedShape = _draggingShape;
-    final screenPosition = _dragScreenPosition;
-    if (selectedShape == null || screenPosition == null) {
-      _previewClearResult = PreviewClearResult.empty;
-      return;
-    }
-
-    final boardPoint = screenToBoard(screenPosition);
-    if (boardPoint == null) {
-      _previewClearResult = PreviewClearResult.empty;
-      return;
-    }
-
-    final col = boardPoint.x;
-    final row = boardPoint.y;
-    if (!canPlace(row, col)) {
-      _previewClearResult = PreviewClearResult.empty;
-      return;
-    }
-
-    _previewClearResult = LineClearSystem.getPreviewClearLines(
-      board: board,
-      shape: selectedShape,
-      anchorRow: row,
-      anchorCol: col,
-      fillState: _currentFillState,
-    );
+    _tryPlaceFromDrag();
+    _clearDragState();
   }
 
-  void _queueFateRemoval(
-    List<math.Point<int>> cells,
-    FateRemovalEffectType effectType,
-  ) {
-    if (cells.isEmpty) return;
-    _pendingFateRemovalCells
-      ..clear()
-      ..addAll(cells);
-    _pendingFateRemovalEffectType = effectType;
-    _fateRemovalLeft = GameConstants.fateRemovalEffectSeconds;
-  }
-
-  int _queueDevilDestructionRemoval(int targetCount) {
-    final picked = FateEffectSystem.pickDestructionCells(
-      board: board,
-      random: _random,
-      targetCount: targetCount,
-    );
-    if (picked.isEmpty) return 0;
-    _queueFateRemoval(picked, FateRemovalEffectType.devilBlast);
-    return picked.length;
-  }
-
-  void _resolvePendingLineClear() {
-    final pending = _pendingClearResult;
-    if (pending == null) return;
-
-    for (final row in pending.fullRows) {
-      for (var col = 0; col < GameConstants.boardSize; col++) {
-        _boardColorIndices[row][col] = null;
-      }
-    }
-    for (final col in pending.fullCols) {
-      for (var row = 0; row < GameConstants.boardSize; row++) {
-        _boardColorIndices[row][col] = null;
-      }
-    }
-
-    LineClearSystem.clearFilledLines(board: board, result: pending);
-
-    _pendingClearResult = null;
-    _lineHighlightLeft = 0;
-    _lastClearResult = const LineClearResult(fullRows: {}, fullCols: {});
-    _evaluateGameOver();
-  }
-
-  void _resolvePendingFateRemoval() {
-    if (_pendingFateRemovalCells.isEmpty) return;
-    for (final point in _pendingFateRemovalCells) {
-      final col = point.x;
-      final row = point.y;
-      if (row < 0 ||
-          row >= GameConstants.boardSize ||
-          col < 0 ||
-          col >= GameConstants.boardSize) {
-        continue;
-      }
-      board[row][col] = CellState.empty;
-      _boardColorIndices[row][col] = null;
-    }
-    _pendingFateRemovalCells.clear();
-    _pendingFateRemovalEffectType = null;
-    _fateRemovalLeft = 0;
-    _evaluateGameOver();
-  }
-
-  bool _handleThemeTap(Offset screenPosition) {
-    final currentLayout = layout;
-    if (currentLayout == null) return false;
-
-    final buttonRect = currentLayout.settingsButtonRect();
-    if (buttonRect.contains(screenPosition)) {
-      _showThemeMenu = !_showThemeMenu;
-      return true;
-    }
-
-    if (!_showThemeMenu) return false;
-
-    final menuRect = currentLayout.themeMenuRect();
-    if (!menuRect.contains(screenPosition)) {
-      _showThemeMenu = false;
-      return true;
-    }
-
-    final options = BlockThemeMode.values;
-    for (var i = 0; i < options.length; i++) {
-      if (currentLayout.themeOptionRect(i).contains(screenPosition)) {
-        _themeMode = options[i];
-        _showThemeMenu = false;
-        return true;
-      }
-    }
-
-    return true;
+  @override
+  void onDragCancel(DragCancelEvent event) {
+    super.onDragCancel(event);
+    _clearDragState();
   }
 
   int _nextRainbowColorIndex() => _random.nextInt(_rainbowPaletteCount);
