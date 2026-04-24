@@ -70,6 +70,49 @@ class FateEffectSystem {
     return math.Point<int>(col, row);
   }
 
+  static MostFilledLine? findMostFilledLine({
+    required List<List<CellState>> board,
+  }) {
+    MostFilledLine? best;
+    var bestCount = 0;
+
+    for (var row = 0; row < board.length; row++) {
+      final cells = <math.Point<int>>[];
+      for (var col = 0; col < board[row].length; col++) {
+        if (board[row][col].isOccupied) {
+          cells.add(math.Point<int>(col, row));
+        }
+      }
+      if (cells.length > bestCount) {
+        bestCount = cells.length;
+        best = MostFilledLine(
+          axis: MostFilledAxis.row,
+          index: row,
+          cells: cells,
+        );
+      }
+    }
+
+    for (var col = 0; col < GameConstants.boardSize; col++) {
+      final cells = <math.Point<int>>[];
+      for (var row = 0; row < GameConstants.boardSize; row++) {
+        if (board[row][col].isOccupied) {
+          cells.add(math.Point<int>(col, row));
+        }
+      }
+      if (cells.length > bestCount) {
+        bestCount = cells.length;
+        best = MostFilledLine(
+          axis: MostFilledAxis.col,
+          index: col,
+          cells: cells,
+        );
+      }
+    }
+
+    return bestCount > 0 ? best : null;
+  }
+
   static List<math.Point<int>> pickDestructionCells({
     required List<List<CellState>> board,
     required math.Random random,
@@ -101,4 +144,18 @@ class _LineTarget {
 
   factory _LineTarget.row(int row) => _LineTarget._(_LineAxis.row, row);
   factory _LineTarget.col(int col) => _LineTarget._(_LineAxis.col, col);
+}
+
+enum MostFilledAxis { row, col }
+
+class MostFilledLine {
+  const MostFilledLine({
+    required this.axis,
+    required this.index,
+    required this.cells,
+  });
+
+  final MostFilledAxis axis;
+  final int index;
+  final List<math.Point<int>> cells;
 }

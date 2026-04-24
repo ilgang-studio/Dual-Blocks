@@ -60,15 +60,15 @@ extension _GamePlacement on DualBlocksGame {
   int _applyLineClear({required bool applyBonusMultiplier}) {
     final result = LineClearSystem.findFilledLines(board);
     if (!result.hasAny) {
-      if (_comboCount > 0 && _comboMissStreak == 0) {
-        _comboMissStreak = 1;
-      } else {
-        _comboCount = 0;
-        _comboMissStreak = 0;
+      if (_comboCount > 0 && _comboShieldActive) {
+        _comboShieldActive = false;
+        return 0;
       }
+      _comboCount = 0;
       return 0;
     }
 
+    _didClearLineThisTurn = true;
     _lastClearResult = result;
     _lineHighlightLeft = GameConstants.lineClearHighlightSeconds;
     _pendingClearResult = result;
@@ -78,7 +78,6 @@ extension _GamePlacement on DualBlocksGame {
       clearedLineCount: clearedLineCount,
       applyBonusMultiplier: applyBonusMultiplier,
     );
-    _comboMissStreak = 0;
     _comboCount += 1;
 
     var scoredClear = clearScore;

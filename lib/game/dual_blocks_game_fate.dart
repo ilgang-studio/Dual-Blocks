@@ -3,8 +3,11 @@ part of 'dual_blocks_game.dart';
 // Fate system: angel / devil selection, triggers, removal effects.
 extension _GameFate on DualBlocksGame {
   void selectAngel() {
+    if (_lastFateSelection == FateType.devil) {
+      _applyDevilToAngelSwitchPenalty();
+    }
+    _lastFateSelection = FateType.angel;
     _angelStack += 1;
-    _devilStack = 0;
     _selectedFate = FateType.angel;
     if (_angelStack >= GameConstants.fateTriggerStack) {
       triggerAngel();
@@ -13,8 +16,8 @@ extension _GameFate on DualBlocksGame {
   }
 
   void selectDevil() {
+    _lastFateSelection = FateType.devil;
     _devilStack += 1;
-    _angelStack = 0;
     _selectedFate = FateType.devil;
     if (_devilStack >= GameConstants.fateTriggerStack) {
       triggerDevil();
@@ -28,18 +31,13 @@ extension _GameFate on DualBlocksGame {
     _showScoreGainFeedback(payout);
     _storedScore = 0;
 
-    var effectSummary = '';
-    switch (GameConstants.angelEffectMode) {
-      case AngelEffectMode.rescueCleanup:
-        final removed = _rescueCleanup();
-        effectSummary = 'Rescue cleanup removed $removed cell';
-      case AngelEffectMode.scoreShield:
-        _nextClearScoreMultiplier = GameConstants.angelNextClearScoreMultiplier;
-        effectSummary =
-            'Next clear score x${GameConstants.angelNextClearScoreMultiplier.toStringAsFixed(1)}';
-      case AngelEffectMode.handRefine:
-        _angelEasyHandBoostPending = true;
-        effectSummary = 'Next normal hand refined to easier blocks';
+    String effectSummary;
+    if (!_didClearLineThisTurn && _comboCount > 0) {
+      _comboShieldActive = true;
+      effectSummary = 'Combo shield ready (1 turn)';
+    } else {
+      final removed = _queueMostFilledLineRemoval();
+      effectSummary = 'Most-filled line cleanup: $removed cell(s)';
     }
 
     _showFateBanner(FateType.angel, 'Stored +$payout, $effectSummary');
@@ -77,14 +75,17 @@ extension _GameFate on DualBlocksGame {
     _fateBannerLeft = GameConstants.fateBannerSeconds;
   }
 
-  int _rescueCleanup() {
-    final target = FateEffectSystem.findRescueCleanupCell(
-      board: board,
-      random: _random,
-    );
-    if (target == null) return 0;
-    _queueFateRemoval([target], FateRemovalEffectType.angelPurge);
-    return 1;
+  int _queueMostFilledLineRemoval() {
+    final line = FateEffectSystem.findMostFilledLine(board: board);
+    if (line == null) return 0;
+    if (line.cells.isEmpty) return 0;
+    _queueFateRemoval(line.cells, FateRemovalEffectType.angelPurge);
+    return line.cells.length;
+  }
+
+  void _applyDevilToAngelSwitchPenalty() {
+    score = (score * (1 - DualBlocksGame._devilToAngelSwitchPenaltyRatio))
+        .toInt();
   }
 
   void _queueFateRemoval(

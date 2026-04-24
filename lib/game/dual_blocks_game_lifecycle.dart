@@ -9,9 +9,11 @@ extension _GameLifecycle on DualBlocksGame {
     isGameOver = false;
     _angelStack = 0;
     _devilStack = 0;
+    _comboShieldActive = false;
+    _didClearLineThisTurn = false;
+    _lastFateSelection = null;
     _storedScore = 0;
     _comboCount = 0;
-    _comboMissStreak = 0;
     _displayScore = 0;
     _displayScoreStart = 0;
     _displayScoreTarget = 0;
@@ -51,6 +53,9 @@ extension _GameLifecycle on DualBlocksGame {
   }
 
   void _refillTray({required bool increaseTurn}) {
+    if (increaseTurn) {
+      _didClearLineThisTurn = false;
+    }
     isAlignmentTurn = _alignmentTurnSystem.shouldStartAlignmentTurn();
     if (_guaranteeOneByOneNextTurn) {
       isAlignmentTurn = false;

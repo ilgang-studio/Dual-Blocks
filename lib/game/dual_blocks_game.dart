@@ -33,6 +33,7 @@ part 'dual_blocks_game_input.dart';
 
 class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   static const int _rainbowPaletteCount = 7;
+  static const double _devilToAngelSwitchPenaltyRatio = 0.08;
 
   // ── Game state ───────────────────────────────────────────────────────────────
   GameLayout? layout;
@@ -79,9 +80,11 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   final math.Random _random = math.Random();
   int _angelStack = 0;
   int _devilStack = 0;
+  bool _comboShieldActive = false;
+  bool _didClearLineThisTurn = false;
+  FateType? _lastFateSelection;
   int _storedScore = 0;
   int _comboCount = 0;
-  int _comboMissStreak = 0;
   double _nextClearScoreMultiplier = 1.0;
   bool _angelEasyHandBoostPending = false;
   bool _guaranteeOneByOneNextTurn = false;
