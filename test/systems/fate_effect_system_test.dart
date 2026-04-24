@@ -60,4 +60,21 @@ void main() {
       }
     },
   );
+
+  test('findMostFilledLine returns deterministic most-filled row or col', () {
+    final board = boardOf(8);
+    board[1][0] = CellState.filled;
+    board[1][1] = CellState.filled;
+    board[1][2] = CellState.filled;
+    board[0][6] = CellState.filled;
+    board[1][6] = CellState.filled;
+    board[2][6] = CellState.filled;
+
+    final line = FateEffectSystem.findMostFilledLine(board: board);
+
+    expect(line, isNotNull);
+    expect(line!.axis, MostFilledAxis.row); // row-first tie break
+    expect(line.index, 1);
+    expect(line.cells.length, 4);
+  });
 }
