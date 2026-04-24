@@ -64,7 +64,12 @@ extension _GamePlacement on DualBlocksGame {
         _comboShieldActive = false;
         return 0;
       }
+      if (_comboCount > 0 && _comboGraceMissesLeft > 0) {
+        _comboGraceMissesLeft -= 1;
+        return 0;
+      }
       _comboCount = 0;
+      _comboGraceMissesLeft = 0;
       return 0;
     }
 
@@ -79,6 +84,8 @@ extension _GamePlacement on DualBlocksGame {
       applyBonusMultiplier: applyBonusMultiplier,
     );
     _comboCount += 1;
+    // Keep combo alive for one miss so combo doesn't drop immediately.
+    _comboGraceMissesLeft = 1;
 
     var scoredClear = clearScore;
     if (_nextClearScoreMultiplier > 1.0) {

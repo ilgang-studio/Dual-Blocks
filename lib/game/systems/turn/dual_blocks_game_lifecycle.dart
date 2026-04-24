@@ -14,6 +14,7 @@ extension _GameLifecycle on DualBlocksGame {
     _lastFateSelection = null;
     _storedScore = 0;
     _comboCount = 0;
+    _comboGraceMissesLeft = 0;
     _displayScore = 0;
     _displayScoreStart = 0;
     _displayScoreTarget = 0;

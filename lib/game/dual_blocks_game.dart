@@ -85,6 +85,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   FateType? _lastFateSelection;
   int _storedScore = 0;
   int _comboCount = 0;
+  int _comboGraceMissesLeft = 0;
   double _nextClearScoreMultiplier = 1.0;
   bool _angelEasyHandBoostPending = false;
   bool _guaranteeOneByOneNextTurn = false;
