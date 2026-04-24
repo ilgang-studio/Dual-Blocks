@@ -47,15 +47,32 @@ extension _GameTray on DualBlocksGame {
 
   void _buildNormalTray() {
     final useAngelHandRefine = _angelEasyHandBoostPending;
-    trayBlocks = HandGenerationSystem.generateHand(
+    final basePool = _guaranteeOneByOneNextTurn
+        ? BlockCatalog.pool
+              .where((shape) => shape.id != BlockCatalog.single.id)
+              .toList(growable: false)
+        : BlockCatalog.pool;
+    final handSize = _guaranteeOneByOneNextTurn
+        ? GameConstants.traySlotCount - 1
+        : GameConstants.traySlotCount;
+
+    final generated = HandGenerationSystem.generateHand(
       board,
       random: _random,
-      blockPool: BlockCatalog.pool,
-      handSize: GameConstants.traySlotCount,
+      blockPool: basePool,
+      handSize: handSize,
       weightResolver: useAngelHandRefine ? _angelRefinedWeight : null,
-    ).map<BlockShape?>((shape) => shape).toList(growable: false);
+    );
+
+    if (_guaranteeOneByOneNextTurn) {
+      trayBlocks = <BlockShape?>[BlockCatalog.single, ...generated];
+      _guaranteeOneByOneNextTurn = false;
+    } else {
+      trayBlocks = generated
+          .map<BlockShape?>((shape) => shape)
+          .toList(growable: false);
+    }
     _angelEasyHandBoostPending = false;
-    _applyPendingDevilGift();
     trayBlockColorIndices = List<int?>.generate(
       trayBlocks.length,
       (_) => _nextRainbowColorIndex(),
@@ -67,8 +84,9 @@ extension _GameTray on DualBlocksGame {
       null,
     );
     selectedTrayIndex = trayBlocks.isNotEmpty ? 0 : null;
-    _selectedFate =
-        selectedTrayIndex == null ? null : trayFates[selectedTrayIndex!];
+    _selectedFate = selectedTrayIndex == null
+        ? null
+        : trayFates[selectedTrayIndex!];
     _alignmentChoicePending = false;
   }
 
@@ -84,7 +102,7 @@ extension _GameTray on DualBlocksGame {
       null,
       null,
       _random.nextBool()
-          ? DevilGiftType.greedBestBlock
+          ? DevilGiftType.seedOfRuin
           : DevilGiftType.destructionAid,
     ];
     selectedTrayIndex = null;
@@ -96,8 +114,9 @@ extension _GameTray on DualBlocksGame {
   void _applyAlignmentChoice(int index) {
     final chosenBlock = trayBlocks[index];
     final chosenFate = trayFates[index];
-    final chosenDevilGift =
-        index < trayDevilGifts.length ? trayDevilGifts[index] : null;
+    final chosenDevilGift = index < trayDevilGifts.length
+        ? trayDevilGifts[index]
+        : null;
     if (chosenBlock == null) return;
 
     for (var i = 0; i < trayBlocks.length; i++) {
@@ -124,7 +143,9 @@ extension _GameTray on DualBlocksGame {
     if (index < 0 || index >= trayBlocks.length) return;
 
     trayBlocks[index] = null;
-    if (index < trayBlockColorIndices.length) trayBlockColorIndices[index] = null;
+    if (index < trayBlockColorIndices.length) {
+      trayBlockColorIndices[index] = null;
+    }
     if (index < trayFates.length) trayFates[index] = null;
     if (index < trayDevilGifts.length) trayDevilGifts[index] = null;
     _selectedDevilGift = null;
@@ -135,31 +156,6 @@ extension _GameTray on DualBlocksGame {
       return;
     }
     _evaluateGameOver();
-  }
-
-  void _applyPendingDevilGift() {
-    final pendingGift = _pendingDevilGift;
-    if (pendingGift == null) return;
-    if (trayBlocks.isEmpty) {
-      _pendingDevilGift = null;
-      return;
-    }
-
-    final replaceIndex = _random.nextInt(trayBlocks.length);
-    if (pendingGift == DevilGiftType.greedBestBlock) {
-      final best = DevilBlockSystem.findBestBlock(
-        board: board,
-        blockPool: BlockCatalog.pool,
-      );
-      if (best != null) trayBlocks[replaceIndex] = best;
-    } else {
-      final aid = DevilBlockSystem.pickDestructionAidBlock(
-        board: board,
-        blockPool: BlockCatalog.pool,
-      );
-      if (aid != null) trayBlocks[replaceIndex] = aid;
-    }
-    _pendingDevilGift = null;
   }
 
   BlockShape _pickPlaceableRandomShape() {
@@ -178,4 +174,29 @@ extension _GameTray on DualBlocksGame {
   }
 
   bool _isEasyShape(BlockShape shape) => shape.cells.length <= 3;
+
+  void _injectOneByOneIntoCurrentTray() {
+    if (trayBlocks.isEmpty) return;
+
+    int targetIndex = trayBlocks.indexWhere((shape) => shape == null);
+    if (targetIndex == -1) {
+      targetIndex = selectedTrayIndex ?? 0;
+      targetIndex = targetIndex.clamp(0, trayBlocks.length - 1);
+    }
+
+    trayBlocks[targetIndex] = BlockCatalog.single;
+    if (targetIndex < trayBlockColorIndices.length) {
+      trayBlockColorIndices[targetIndex] = _nextRainbowColorIndex();
+    }
+    if (targetIndex < trayFates.length) {
+      trayFates[targetIndex] = FateType.devil;
+    }
+    if (targetIndex < trayDevilGifts.length) {
+      trayDevilGifts[targetIndex] = DevilGiftType.seedOfRuin;
+    }
+
+    selectedTrayIndex = targetIndex;
+    _selectedFate = FateType.devil;
+    _selectedDevilGift = DevilGiftType.seedOfRuin;
+  }
 }

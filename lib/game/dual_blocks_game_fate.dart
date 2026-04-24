@@ -54,14 +54,14 @@ extension _GameFate on DualBlocksGame {
     );
     _selectedDevilGift = null;
 
-    score = (score * (1 - GameConstants.devilScorePenaltyRatio)).toInt();
+    score = (score * 0.9).toInt();
 
     String summary;
-    if (selectedGift == DevilGiftType.greedBestBlock) {
-      _pendingDevilGift = DevilGiftType.greedBestBlock;
-      summary = 'Greed: next hand gets best block';
+    if (selectedGift == DevilGiftType.seedOfRuin) {
+      _injectOneByOneIntoCurrentTray();
+      _guaranteeOneByOneNextTurn = true;
+      summary = 'Seed of Ruin: +1x1 now, +1x1 next hand';
     } else {
-      _pendingDevilGift = null;
       final removed = _queueDevilDestructionRemoval(2);
       summary = 'Destruction: collapse $removed block(s)';
     }

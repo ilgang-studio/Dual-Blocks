@@ -15,7 +15,6 @@ import 'models/line_clear_result.dart';
 import 'models/preview_clear_result.dart';
 import 'models/render_frame_data.dart';
 import 'systems/alignment_turn_system.dart';
-import 'systems/devil_block_system.dart';
 import 'systems/fate_effect_system.dart';
 import 'systems/game_flow_system.dart';
 import 'systems/hand_generation_system.dart';
@@ -85,7 +84,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   int _comboMissStreak = 0;
   double _nextClearScoreMultiplier = 1.0;
   bool _angelEasyHandBoostPending = false;
-  DevilGiftType? _pendingDevilGift;
+  bool _guaranteeOneByOneNextTurn = false;
   DevilGiftType? _selectedDevilGift;
   FateType? _selectedFate;
   FateType? _activeFateType;

@@ -19,7 +19,7 @@ extension _GameLifecycle on DualBlocksGame {
     _displayScoreAnimDuration = 0;
     _nextClearScoreMultiplier = 1.0;
     _angelEasyHandBoostPending = false;
-    _pendingDevilGift = null;
+    _guaranteeOneByOneNextTurn = false;
     _selectedDevilGift = null;
     _effectTime = 0;
     _activeFateType = null;
@@ -52,6 +52,9 @@ extension _GameLifecycle on DualBlocksGame {
 
   void _refillTray({required bool increaseTurn}) {
     isAlignmentTurn = _alignmentTurnSystem.shouldStartAlignmentTurn();
+    if (_guaranteeOneByOneNextTurn) {
+      isAlignmentTurn = false;
+    }
     if (isAlignmentTurn) {
       _buildAlignmentTray();
     } else {
