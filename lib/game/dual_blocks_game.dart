@@ -30,6 +30,7 @@ part 'systems/board/dual_blocks_game_placement.dart';
 part 'systems/fate/dual_blocks_game_fate.dart';
 part 'systems/score/dual_blocks_game_score.dart';
 part 'systems/input/dual_blocks_game_input.dart';
+part 'systems/core/dual_blocks_game_runtime.dart';
 
 class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   static const int _rainbowPaletteCount = 7;
@@ -124,189 +125,64 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     (_) => List<int?>.filled(GameConstants.boardSize, null),
   );
 
-  // ── FlameGame overrides ──────────────────────────────────────────────────────
-
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-    layout = LayoutSystem.calculate(size);
-    _startNewGame();
+    _handleOnLoad();
   }
 
   @override
   void onGameResize(Vector2 size) {
     super.onGameResize(size);
-    layout = LayoutSystem.calculate(size);
+    _handleOnGameResize(size);
   }
 
   @override
   void onRemove() {
-    settingsModalVisible.dispose();
+    _handleOnRemove();
     super.onRemove();
   }
 
   @override
   void update(double dt) {
     super.update(dt);
-    _effectTime += dt;
-    _updateDisplayedScore(dt);
-    if (score > _bestScore) _bestScore = score;
-
-    if (_pendingFateRemovalCells.isNotEmpty && _fateRemovalLeft > 0) {
-      _fateRemovalLeft -= dt;
-      if (_fateRemovalLeft <= 0) _resolvePendingFateRemoval();
-    }
-
-    if (_pendingClearResult != null && _lineHighlightLeft > 0) {
-      _lineHighlightLeft -= dt;
-      if (_lineHighlightLeft <= 0) _resolvePendingLineClear();
-    } else if (_lineHighlightLeft > 0) {
-      _lineHighlightLeft -= dt;
-      if (_lineHighlightLeft <= 0) {
-        _lineHighlightLeft = 0;
-        _lastClearResult = const LineClearResult(fullRows: {}, fullCols: {});
-      }
-    }
-
-    if (_scorePopupLeft > 0) {
-      _scorePopupLeft -= dt;
-      if (_scorePopupLeft < 0) _scorePopupLeft = 0;
-    }
-    if (_scorePulseLeft > 0) {
-      _scorePulseLeft -= dt;
-      if (_scorePulseLeft < 0) _scorePulseLeft = 0;
-    }
-    if (_placeSuccessLeft > 0) {
-      _placeSuccessLeft -= dt;
-      if (_placeSuccessLeft < 0) _placeSuccessLeft = 0;
-    }
-    if (_placeFailLeft > 0) {
-      _placeFailLeft -= dt;
-      if (_placeFailLeft < 0) _placeFailLeft = 0;
-    }
-    if (_fateBannerLeft > 0) {
-      _fateBannerLeft -= dt;
-      if (_fateBannerLeft <= 0) {
-        _fateBannerLeft = 0;
-        _activeFateType = null;
-        _activeFateReason = null;
-      }
-    }
+    _handleUpdate(dt);
   }
 
   @override
   void render(Canvas canvas) {
     super.render(canvas);
-    final currentLayout = layout;
-    if (currentLayout == null) return;
-
-    DualBlocksRenderer.render(
-      canvas: canvas,
-      frame: RenderFrameData(
-        layout: currentLayout,
-        score: _visibleScore,
-        bestScore: _bestScore,
-        turn: turn,
-        isGameOver: isGameOver,
-        board: board,
-        boardColorIndices: _boardColorIndices,
-        trayBlocks: trayBlocks,
-        trayBlockColorIndices: trayBlockColorIndices,
-        trayFates: trayFates,
-        trayDevilGifts: trayDevilGifts,
-        selectedTrayIndex: selectedTrayIndex,
-        isAlignmentTurn: isAlignmentTurn,
-        alignmentChoicePending: _alignmentChoicePending,
-        effectTime: _effectTime,
-        themeMode: _themeMode,
-        customThemeColor: _customThemeColor,
-        showThemeMenu: _showThemeMenu,
-        dragShape: _draggingShape,
-        dragScreenPosition: _dragScreenPosition,
-        dragCanPlace: _dragCanPlace,
-        previewClearRows: _previewClearResult.rows,
-        previewClearCols: _previewClearResult.cols,
-        clearRows: _lastClearResult.fullRows,
-        clearCols: _lastClearResult.fullCols,
-        showClearHighlight: _lineHighlightLeft > 0,
-        fateRemovalCells: _pendingFateRemovalCells,
-        fateRemovalEffectType: _pendingFateRemovalEffectType,
-        fateRemovalProgress:
-            _fateRemovalLeft / GameConstants.fateRemovalEffectSeconds,
-        fateType: _activeFateType,
-        fateReason: _activeFateReason,
-        showFateBanner: _fateBannerLeft > 0,
-        angelStack: _angelStack,
-        devilStack: _devilStack,
-        storedScore: _storedScore,
-        comboCount: _comboCount,
-        scorePopupValue: _scorePopupValue,
-        scorePopupProgress: _scorePopupLeft / GameConstants.scorePopupSeconds,
-        scorePulseProgress: _scorePulseLeft / GameConstants.scorePulseSeconds,
-        placeSuccessProgress:
-            _placeSuccessLeft / GameConstants.placementSuccessSeconds,
-        placeFailProgress: _placeFailLeft / GameConstants.placementFailSeconds,
-      ),
-    );
+    _handleRender(canvas);
   }
 
   @override
   void onTapDown(TapDownEvent event) {
     super.onTapDown(event);
-    if (isGameOver) {
-      _startNewGame();
-      return;
-    }
-    final pos = Offset(event.localPosition.x, event.localPosition.y);
-    if (_handleThemeTap(pos)) return;
-    trySelectTrayFromScreen(pos);
+    _handleOnTapDown(event);
   }
 
   @override
   void onDragStart(DragStartEvent event) {
     super.onDragStart(event);
-    if (isGameOver) return;
-    if (_showThemeMenu) return;
-    if (_pendingClearResult != null) return;
-    if (_pendingFateRemovalCells.isNotEmpty) return;
-
-    final pos = Offset(event.localPosition.x, event.localPosition.y);
-    if (!trySelectTrayFromScreen(pos)) return;
-
-    _isDraggingBlock = true;
-    _draggingShape = _selectedShape;
-    _dragScreenPosition = pos;
-    _updatePreviewClearState();
+    _handleOnDragStart(event);
   }
 
   @override
   void onDragUpdate(DragUpdateEvent event) {
     super.onDragUpdate(event);
-    if (isGameOver) return;
-    if (!_isDraggingBlock) return;
-
-    _dragScreenPosition = Offset(
-      event.canvasEndPosition.x,
-      event.canvasEndPosition.y,
-    );
-    _updatePreviewClearState();
+    _handleOnDragUpdate(event);
   }
 
   @override
   void onDragEnd(DragEndEvent event) {
     super.onDragEnd(event);
-    if (isGameOver) {
-      _clearDragState();
-      return;
-    }
-    _tryPlaceFromDrag();
-    _clearDragState();
+    _handleOnDragEnd(event);
   }
 
   @override
   void onDragCancel(DragCancelEvent event) {
     super.onDragCancel(event);
-    _clearDragState();
+    _handleOnDragCancel(event);
   }
 
   // ── Settings API (Flutter modal bridge) ────────────────────────────────────
