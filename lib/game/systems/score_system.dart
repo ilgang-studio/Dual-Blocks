@@ -13,8 +13,12 @@ class ScoreSystem {
   static int calculateLineClearScore({
     required int comboCount,
     required int clearedLineCount,
+    bool applyBonusMultiplier = true,
   }) {
     if (clearedLineCount <= 0) return 0;
+    if (!applyBonusMultiplier) {
+      return clearedLineCount * GameConstants.lineClearBasePoint;
+    }
 
     if (clearedLineCount == 1) {
       return (comboCount + 1) * GameConstants.lineClearBasePoint;

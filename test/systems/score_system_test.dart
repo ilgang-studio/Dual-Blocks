@@ -19,6 +19,15 @@ void main() {
     expect(score, 780);
   });
 
+  test('calculateLineClearScore can disable combo and multiline bonuses', () {
+    final score = ScoreSystem.calculateLineClearScore(
+      comboCount: 50,
+      clearedLineCount: 3,
+      applyBonusMultiplier: false,
+    );
+    expect(score, 30);
+  });
+
   test('estimateClearedCellCount counts row/col overlap once', () {
     final count = ScoreSystem.estimateClearedCellCount(
       const LineClearResult(fullRows: {1}, fullCols: {2}),

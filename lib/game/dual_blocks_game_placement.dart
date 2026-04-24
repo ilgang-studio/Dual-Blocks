@@ -46,17 +46,18 @@ extension _GamePlacement on DualBlocksGame {
       fillState: _currentFillState,
     );
     if (placed) {
+      final isOneByOne = selectedShape.id == BlockCatalog.single.id;
       _paintPlacedBlockColor(row, col, selectedShape);
       final placedScore = selectedShape.cells.length;
       score += placedScore;
-      final clearGain = _applyLineClear();
+      final clearGain = _applyLineClear(applyBonusMultiplier: !isOneByOne);
       _showScoreGainFeedback(placedScore + clearGain);
       _consumeSelectedTrayBlock();
     }
     return placed;
   }
 
-  int _applyLineClear() {
+  int _applyLineClear({required bool applyBonusMultiplier}) {
     final result = LineClearSystem.findFilledLines(board);
     if (!result.hasAny) {
       if (_comboCount > 0 && _comboMissStreak == 0) {
@@ -75,6 +76,7 @@ extension _GamePlacement on DualBlocksGame {
     final clearScore = ScoreSystem.calculateLineClearScore(
       comboCount: _comboCount,
       clearedLineCount: clearedLineCount,
+      applyBonusMultiplier: applyBonusMultiplier,
     );
     _comboMissStreak = 0;
     _comboCount += 1;
@@ -117,11 +119,7 @@ extension _GamePlacement on DualBlocksGame {
     _evaluateGameOver();
   }
 
-  void _paintPlacedBlockColor(
-    int anchorRow,
-    int anchorCol,
-    BlockShape shape,
-  ) {
+  void _paintPlacedBlockColor(int anchorRow, int anchorCol, BlockShape shape) {
     if (_currentFillState != CellState.filled) return;
     final colorIndex = _selectedTrayBlockColorIndex ?? _nextRainbowColorIndex();
     for (final cell in shape.cells) {
