@@ -51,6 +51,7 @@ class RenderFrameData {
     required this.scorePulseProgress,
     required this.placeSuccessProgress,
     required this.placeFailProgress,
+    required this.language,
   });
 
   final GameLayout layout;
@@ -94,4 +95,5 @@ class RenderFrameData {
   final double scorePulseProgress;
   final double placeSuccessProgress;
   final double placeFailProgress;
+  final String language;
 }

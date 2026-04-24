@@ -18,7 +18,10 @@ extension _GameRuntime on DualBlocksGame {
   void _handleUpdate(double dt) {
     _effectTime += dt;
     _updateDisplayedScore(dt);
-    if (score > _bestScore) _bestScore = score;
+    if (score > _bestScore) {
+      _bestScore = score;
+      unawaited(AppPrefs.saveBestScore(_bestScore));
+    }
 
     if (_pendingFateRemovalCells.isNotEmpty && _fateRemovalLeft > 0) {
       _fateRemovalLeft -= dt;
@@ -112,6 +115,7 @@ extension _GameRuntime on DualBlocksGame {
         placeSuccessProgress:
             _placeSuccessLeft / GameConstants.placementSuccessSeconds,
         placeFailProgress: _placeFailLeft / GameConstants.placementFailSeconds,
+        language: _selectedLanguage,
       ),
     );
   }

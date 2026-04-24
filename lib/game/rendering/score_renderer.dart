@@ -13,8 +13,12 @@ void _drawHeader({
   required double effectTime,
   required double scorePulseProgress,
   required bool showThemeMenu,
+  required String language,
 }) {
   _drawScorePanelBackground(canvas, layout);
+  final textDirection = GameLocalization.isRtl(language)
+      ? TextDirection.rtl
+      : TextDirection.ltr;
 
   final neonPulse = (math.sin(effectTime * 8.5) + 1) / 2;
   final isComboActive = comboCount > 0;
@@ -31,7 +35,7 @@ void _drawHeader({
 
   final topLabelPainter = TextPainter(
     text: TextSpan(
-      text: 'TOP $bestScore',
+      text: GameLocalization.topScoreLabel(language, bestScore),
       style: const TextStyle(
         color: Color(0xFFFDE68A),
         fontSize: 13,
@@ -39,7 +43,7 @@ void _drawHeader({
         letterSpacing: 0.6,
       ),
     ),
-    textDirection: TextDirection.ltr,
+    textDirection: textDirection,
   )..layout();
   topLabelPainter.paint(
     canvas,
@@ -47,8 +51,8 @@ void _drawHeader({
   );
 
   final centerTitlePainter = TextPainter(
-    text: const TextSpan(
-      text: '현재 점수',
+    text: TextSpan(
+      text: GameLocalization.currentScoreLabel(language),
       style: TextStyle(
         color: Color(0xFFE2E8F0),
         fontSize: 11,
@@ -56,7 +60,7 @@ void _drawHeader({
         letterSpacing: 0.6,
       ),
     ),
-    textDirection: TextDirection.ltr,
+    textDirection: textDirection,
   )..layout();
   centerTitlePainter.paint(
     canvas,
@@ -86,7 +90,7 @@ void _drawHeader({
         ],
       ),
     ),
-    textDirection: TextDirection.ltr,
+    textDirection: textDirection,
   )..layout();
 
   scorePainter.paint(
@@ -99,7 +103,7 @@ void _drawHeader({
 
   final metaPainter = TextPainter(
     text: TextSpan(
-      text: 'TURN $turn   |   STORED $storedScore',
+      text: GameLocalization.turnStoredLabel(language, turn, storedScore),
       style: const TextStyle(
         color: Color(0xFF94A3B8),
         fontSize: 9,
@@ -107,7 +111,7 @@ void _drawHeader({
         letterSpacing: 0.8,
       ),
     ),
-    textDirection: TextDirection.ltr,
+    textDirection: textDirection,
   )..layout();
 
   metaPainter.paint(
@@ -120,7 +124,9 @@ void _drawHeader({
 
   final comboPainter = TextPainter(
     text: TextSpan(
-      text: isComboActive ? 'COMBO x$comboCount' : '',
+      text: isComboActive
+          ? GameLocalization.comboLabel(language, comboCount)
+          : '',
       style: TextStyle(
         color: const Color(
           0xFF06B6D4,
@@ -136,7 +142,7 @@ void _drawHeader({
         ],
       ),
     ),
-    textDirection: TextDirection.ltr,
+    textDirection: textDirection,
   )..layout();
 
   if (isComboActive) {
@@ -301,6 +307,7 @@ void _drawFateBanner(
   GameLayout layout,
   FateType type,
   String reason,
+  String language,
 ) {
   final badgeRect = Rect.fromLTWH(
     layout.scoreRect.right - 190,
@@ -316,7 +323,10 @@ void _drawFateBanner(
     badgePaint,
   );
 
-  final title = type == FateType.angel ? 'ANGEL' : 'DEVIL';
+  final title = GameLocalization.fateTypeLabel(
+    language,
+    type == FateType.angel,
+  );
   final textPainter = TextPainter(
     text: TextSpan(
       text: '$title: $reason',
@@ -328,7 +338,9 @@ void _drawFateBanner(
         fontWeight: FontWeight.w700,
       ),
     ),
-    textDirection: TextDirection.ltr,
+    textDirection: GameLocalization.isRtl(language)
+        ? TextDirection.rtl
+        : TextDirection.ltr,
     maxLines: 1,
     ellipsis: '...',
   )..layout(maxWidth: badgeRect.width - 10);
