@@ -93,7 +93,9 @@ extension _GameTray on DualBlocksGame {
     final normal = _pickPlaceableRandomShape();
     final angel = _pickPlaceableRandomShape();
     final devilGift = chooseDevilEffectType();
-    final devil = BlockCatalog.single;
+    final devil = devilGift == DevilGiftType.devilDestroy
+        ? _pickPlaceableRandomShape()
+        : BlockCatalog.single;
 
     trayBlocks = <BlockShape?>[normal, angel, devil];
     trayBlockColorIndices = <int?>[_nextRainbowColorIndex(), null, null];

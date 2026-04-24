@@ -183,20 +183,41 @@ extension _GamePlacement on DualBlocksGame {
   }
 
   bool _canApplyDevilDestroy(int row, int col) {
-    if (row < 0 ||
-        row >= GameConstants.boardSize ||
-        col < 0 ||
-        col >= GameConstants.boardSize) {
-      return false;
+    final selectedShape = _selectedShape;
+    if (selectedShape == null) return false;
+
+    var hasOccupiedTarget = false;
+    for (final cell in selectedShape.cells) {
+      final targetRow = row + cell.y;
+      final targetCol = col + cell.x;
+      if (targetRow < 0 ||
+          targetRow >= GameConstants.boardSize ||
+          targetCol < 0 ||
+          targetCol >= GameConstants.boardSize) {
+        return false;
+      }
+      if (board[targetRow][targetCol].isOccupied) {
+        hasOccupiedTarget = true;
+      }
     }
-    return board[row][col].isOccupied;
+    return hasOccupiedTarget;
   }
 
   bool applyDevilDestroy(int row, int col) {
     if (!_canApplyDevilDestroy(row, col)) return false;
-    _queueFateRemoval([
-      math.Point<int>(col, row),
-    ], FateRemovalEffectType.devilBlockBreak);
+    final selectedShape = _selectedShape;
+    if (selectedShape == null) return false;
+
+    final removalTargets = <math.Point<int>>[];
+    for (final cell in selectedShape.cells) {
+      final targetRow = row + cell.y;
+      final targetCol = col + cell.x;
+      if (!board[targetRow][targetCol].isOccupied) continue;
+      removalTargets.add(math.Point<int>(targetCol, targetRow));
+    }
+    if (removalTargets.isEmpty) return false;
+
+    _queueFateRemoval(removalTargets, FateRemovalEffectType.devilBlockBreak);
     return true;
   }
 }
