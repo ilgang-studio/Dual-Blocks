@@ -26,11 +26,14 @@ import 'systems/score_system.dart';
 import 'systems/turn_flow_system.dart';
 
 class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
+  static const int _rainbowPaletteCount = 7;
+
   GameLayout? layout;
   int score = 0;
   int turn = 1;
   bool isGameOver = false;
   List<BlockShape?> trayBlocks = [];
+  List<int?> trayBlockColorIndices = [];
   List<FateType?> trayFates = [];
   List<DevilGiftType?> trayDevilGifts = [];
   int? selectedTrayIndex;
@@ -83,6 +86,10 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     GameConstants.boardSize,
     (_) => List.generate(GameConstants.boardSize, (_) => CellState.empty),
   );
+  final List<List<int?>> _boardColorIndices = List.generate(
+    GameConstants.boardSize,
+    (_) => List<int?>.filled(GameConstants.boardSize, null),
+  );
 
   bool canPlace(int row, int col) {
     if (_pendingClearResult != null) return false;
@@ -120,6 +127,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
       fillState: _currentFillState,
     );
     if (placed) {
+      _paintPlacedBlockColor(row, col, selectedShape);
       final placedScore = selectedShape.cells.length;
       score += placedScore;
       final clearGain = _applyLineClear();
@@ -350,6 +358,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     for (var row = 0; row < board.length; row++) {
       for (var col = 0; col < board[row].length; col++) {
         board[row][col] = CellState.empty;
+        _boardColorIndices[row][col] = null;
       }
     }
     _lastClearResult = const LineClearResult(fullRows: {}, fullCols: {});
@@ -409,12 +418,22 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     return trayBlocks[index];
   }
 
+  int? get _selectedTrayBlockColorIndex {
+    final index = selectedTrayIndex;
+    if (index == null) return null;
+    if (index < 0 || index >= trayBlockColorIndices.length) return null;
+    return trayBlockColorIndices[index];
+  }
+
   void _consumeSelectedTrayBlock() {
     final index = selectedTrayIndex;
     if (index == null) return;
     if (index < 0 || index >= trayBlocks.length) return;
 
     trayBlocks[index] = null;
+    if (index < trayBlockColorIndices.length) {
+      trayBlockColorIndices[index] = null;
+    }
     if (index < trayFates.length) {
       trayFates[index] = null;
     }
@@ -442,6 +461,11 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     ).map<BlockShape?>((shape) => shape).toList(growable: false);
     _angelEasyHandBoostPending = false;
     _applyPendingDevilGift();
+    trayBlockColorIndices = List<int?>.generate(
+      trayBlocks.length,
+      (_) => _nextRainbowColorIndex(),
+      growable: false,
+    );
 
     trayFates = List<FateType?>.filled(GameConstants.traySlotCount, null);
     trayDevilGifts = List<DevilGiftType?>.filled(
@@ -502,6 +526,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     final devil = _pickPlaceableRandomShape();
 
     trayBlocks = <BlockShape?>[normal, angel, devil];
+    trayBlockColorIndices = <int?>[_nextRainbowColorIndex(), null, null];
     trayFates = <FateType?>[null, FateType.angel, FateType.devil];
     trayDevilGifts = <DevilGiftType?>[
       null,
@@ -535,6 +560,9 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     for (var i = 0; i < trayBlocks.length; i++) {
       if (i == index) continue;
       trayBlocks[i] = null;
+      if (i < trayBlockColorIndices.length) {
+        trayBlockColorIndices[i] = null;
+      }
     }
     selectedTrayIndex = index;
     _selectedFate = chosenFate;
@@ -691,7 +719,9 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
         turn: turn,
         isGameOver: isGameOver,
         board: board,
+        boardColorIndices: _boardColorIndices,
         trayBlocks: trayBlocks,
+        trayBlockColorIndices: trayBlockColorIndices,
         trayFates: trayFates,
         trayDevilGifts: trayDevilGifts,
         selectedTrayIndex: selectedTrayIndex,
@@ -855,6 +885,22 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     _queueFateRemoval(removalTargets, FateRemovalEffectType.devilBlockBreak);
   }
 
+  void _paintPlacedBlockColor(int anchorRow, int anchorCol, BlockShape shape) {
+    if (_currentFillState != CellState.filled) return;
+    final colorIndex = _selectedTrayBlockColorIndex ?? _nextRainbowColorIndex();
+    for (final cell in shape.cells) {
+      final row = anchorRow + cell.y;
+      final col = anchorCol + cell.x;
+      if (row < 0 ||
+          row >= GameConstants.boardSize ||
+          col < 0 ||
+          col >= GameConstants.boardSize) {
+        continue;
+      }
+      _boardColorIndices[row][col] = colorIndex;
+    }
+  }
+
   void _updatePreviewClearState() {
     if (!_isDraggingBlock) {
       _previewClearResult = PreviewClearResult.empty;
@@ -921,6 +967,17 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
     final pending = _pendingClearResult;
     if (pending == null) return;
 
+    for (final row in pending.fullRows) {
+      for (var col = 0; col < GameConstants.boardSize; col++) {
+        _boardColorIndices[row][col] = null;
+      }
+    }
+    for (final col in pending.fullCols) {
+      for (var row = 0; row < GameConstants.boardSize; row++) {
+        _boardColorIndices[row][col] = null;
+      }
+    }
+
     LineClearSystem.clearFilledLines(board: board, result: pending);
 
     _pendingClearResult = null;
@@ -941,6 +998,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
         continue;
       }
       board[row][col] = CellState.empty;
+      _boardColorIndices[row][col] = null;
     }
     _pendingFateRemovalCells.clear();
     _pendingFateRemovalEffectType = null;
@@ -977,4 +1035,6 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
 
     return true;
   }
+
+  int _nextRainbowColorIndex() => _random.nextInt(_rainbowPaletteCount);
 }

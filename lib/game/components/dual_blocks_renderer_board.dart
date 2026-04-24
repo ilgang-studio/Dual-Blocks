@@ -14,6 +14,7 @@ void _drawCells(
   Canvas canvas,
   GameLayout layout,
   List<List<CellState>> board, {
+  required List<List<int?>> boardColorIndices,
   required BlockThemeMode themeMode,
   required double effectTime,
 }) {
@@ -27,16 +28,23 @@ void _drawCells(
       );
 
       if (board[row][col] == CellState.filled) {
-        DualBlocksRenderer._cellFallbackPaint.color = _normalThemeColor(
+        var fillColor = _normalThemeColor(
           mode: themeMode,
           row: row,
           col: col,
           effectTime: effectTime,
         );
+        if (themeMode == BlockThemeMode.rainbow) {
+          final colorIndex = boardColorIndices[row][col];
+          if (colorIndex != null) {
+            fillColor = _rainbowPaletteColor(colorIndex);
+          }
+        }
+        DualBlocksRenderer._cellFallbackPaint.color = fillColor;
         _drawBeveledBlockTile(
           canvas: canvas,
           rect: rect,
-          color: DualBlocksRenderer._cellFallbackPaint.color,
+          color: fillColor,
           cornerRadius: 2.5,
         );
       }
@@ -128,22 +136,29 @@ Color _normalThemeColor({
   required int col,
   required double effectTime,
 }) {
+  assert(effectTime >= 0);
   switch (mode) {
     case BlockThemeMode.solid:
       return GameConstants.normalBlockColor;
     case BlockThemeMode.custom:
       return const Color(0xFFF59E0B);
     case BlockThemeMode.rainbow:
-      final palette = <Color>[
-        const Color(0xFF22D3EE),
-        const Color(0xFFA78BFA),
-        const Color(0xFFF59E0B),
-        const Color(0xFF34D399),
-        const Color(0xFFF472B6),
-      ];
-      final index = (row + col + (effectTime * 1.8).floor()) % palette.length;
-      return palette[index];
+      return _rainbowPaletteColor(row + (col * 3));
   }
+}
+
+Color _rainbowPaletteColor(int index) {
+  const palette = <Color>[
+    Color(0xFF2563EB),
+    Color(0xFF22C55E),
+    Color(0xFFA855F7),
+    Color(0xFFF97316),
+    Color(0xFFFACC15),
+    Color(0xFF38BDF8),
+    Color(0xFFEF4444),
+  ];
+  final normalized = index % palette.length;
+  return palette[normalized < 0 ? normalized + palette.length : normalized];
 }
 
 void _drawGrid(Canvas canvas, GameLayout layout) {

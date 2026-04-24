@@ -16,7 +16,9 @@ class RenderFrameData {
     required this.turn,
     required this.isGameOver,
     required this.board,
+    required this.boardColorIndices,
     required this.trayBlocks,
+    required this.trayBlockColorIndices,
     required this.trayFates,
     required this.trayDevilGifts,
     required this.selectedTrayIndex,
@@ -56,7 +58,9 @@ class RenderFrameData {
   final int turn;
   final bool isGameOver;
   final List<List<CellState>> board;
+  final List<List<int?>> boardColorIndices;
   final List<BlockShape?> trayBlocks;
+  final List<int?> trayBlockColorIndices;
   final List<FateType?> trayFates;
   final List<DevilGiftType?> trayDevilGifts;
   final int? selectedTrayIndex;

@@ -109,6 +109,7 @@ class DualBlocksRenderer {
       canvas,
       frame.layout,
       frame.board,
+      boardColorIndices: frame.boardColorIndices,
       themeMode: frame.themeMode,
       effectTime: frame.effectTime,
     );
@@ -190,6 +191,7 @@ class DualBlocksRenderer {
       canvas,
       frame.layout,
       frame.trayBlocks,
+      frame.trayBlockColorIndices,
       frame.trayFates,
       frame.trayDevilGifts,
       frame.selectedTrayIndex,

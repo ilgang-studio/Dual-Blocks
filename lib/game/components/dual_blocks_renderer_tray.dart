@@ -14,6 +14,7 @@ void _drawTraySlots(
   Canvas canvas,
   GameLayout layout,
   List<BlockShape?> trayBlocks,
+  List<int?> trayBlockColorIndices,
   List<FateType?> trayFates,
   List<DevilGiftType?> trayDevilGifts,
   int? selectedTrayIndex,
@@ -53,6 +54,9 @@ void _drawTraySlots(
         canvas,
         slotRect,
         shape,
+        blockColorIndex: i < trayBlockColorIndices.length
+            ? trayBlockColorIndices[i]
+            : null,
         fate: slotFate,
         scale: selectedTrayIndex == i ? 1.08 : 1.0,
         themeMode: themeMode,
@@ -186,6 +190,7 @@ void _drawShapePreview(
   Canvas canvas,
   Rect slotRect,
   BlockShape shape, {
+  int? blockColorIndex,
   FateType? fate,
   double scale = 1.0,
   required BlockThemeMode themeMode,
@@ -223,12 +228,15 @@ void _drawShapePreview(
   for (final point in points) {
     final left = originX + ((point.x - minX) * cellSize);
     final top = originY + ((point.y - minY) * cellSize);
-    final themedColor = _normalThemeColor(
-      mode: themeMode,
-      row: point.y + slotIndex,
-      col: point.x + slotIndex,
-      effectTime: effectTime,
-    );
+    final themedColor =
+        themeMode == BlockThemeMode.rainbow && blockColorIndex != null
+        ? _rainbowPaletteColor(blockColorIndex)
+        : _normalThemeColor(
+            mode: themeMode,
+            row: point.y + slotIndex,
+            col: point.x + slotIndex,
+            effectTime: effectTime,
+          );
     DualBlocksRenderer._shapePreviewPaint.color = themedColor;
     final paint = fate == FateType.angel
         ? DualBlocksRenderer._shapePreviewAngelPaint
