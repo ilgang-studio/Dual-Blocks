@@ -10,27 +10,10 @@ extension _GameInput on DualBlocksGame {
 
     final buttonRect = currentLayout.settingsButtonRect();
     if (buttonRect.contains(screenPosition)) {
-      _showThemeMenu = !_showThemeMenu;
+      openSettingsModal();
       return true;
     }
-
-    if (!_showThemeMenu) return false;
-
-    final menuRect = currentLayout.themeMenuRect();
-    if (!menuRect.contains(screenPosition)) {
-      _showThemeMenu = false;
-      return true;
-    }
-
-    final options = BlockThemeMode.values;
-    for (var i = 0; i < options.length; i++) {
-      if (currentLayout.themeOptionRect(i).contains(screenPosition)) {
-        _themeMode = options[i];
-        _showThemeMenu = false;
-        return true;
-      }
-    }
-    return true;
+    return false;
   }
 
   bool _tryPlaceFromDrag() {

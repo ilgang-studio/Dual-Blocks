@@ -26,6 +26,7 @@ class RenderFrameData {
     required this.alignmentChoicePending,
     required this.effectTime,
     required this.themeMode,
+    required this.customThemeColor,
     required this.showThemeMenu,
     required this.dragShape,
     required this.dragScreenPosition,
@@ -68,6 +69,7 @@ class RenderFrameData {
   final bool alignmentChoicePending;
   final double effectTime;
   final BlockThemeMode themeMode;
+  final Color customThemeColor;
   final bool showThemeMenu;
   final BlockShape? dragShape;
   final Offset? dragScreenPosition;

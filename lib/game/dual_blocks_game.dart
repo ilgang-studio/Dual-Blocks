@@ -103,7 +103,10 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   // ── Effects / theme ──────────────────────────────────────────────────────────
   double _effectTime = 0;
   BlockThemeMode _themeMode = BlockThemeMode.solid;
+  Color _customThemeColor = const Color(0xFFF59E0B);
+  String _selectedLanguage = 'English';
   bool _showThemeMenu = false;
+  final ValueNotifier<bool> settingsModalVisible = ValueNotifier<bool>(false);
 
   // ── Systems ──────────────────────────────────────────────────────────────────
   final AlignmentTurnSystem _alignmentTurnSystem = AlignmentTurnSystem();
@@ -131,6 +134,12 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   void onGameResize(Vector2 size) {
     super.onGameResize(size);
     layout = LayoutSystem.calculate(size);
+  }
+
+  @override
+  void onRemove() {
+    settingsModalVisible.dispose();
+    super.onRemove();
   }
 
   @override
@@ -207,6 +216,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
         alignmentChoicePending: _alignmentChoicePending,
         effectTime: _effectTime,
         themeMode: _themeMode,
+        customThemeColor: _customThemeColor,
         showThemeMenu: _showThemeMenu,
         dragShape: _draggingShape,
         dragScreenPosition: _dragScreenPosition,
@@ -294,6 +304,38 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   void onDragCancel(DragCancelEvent event) {
     super.onDragCancel(event);
     _clearDragState();
+  }
+
+  // ── Settings API (Flutter modal bridge) ────────────────────────────────────
+  BlockThemeMode get selectedThemeMode => _themeMode;
+  Color get selectedCustomThemeColor => _customThemeColor;
+  String get selectedLanguage => _selectedLanguage;
+
+  void openSettingsModal() {
+    _showThemeMenu = true;
+    settingsModalVisible.value = true;
+  }
+
+  void closeSettingsModal() {
+    _showThemeMenu = false;
+    settingsModalVisible.value = false;
+  }
+
+  void setThemeMode(BlockThemeMode mode) {
+    _themeMode = mode;
+  }
+
+  void setCustomThemeColor(Color color) {
+    _customThemeColor = color;
+  }
+
+  void setLanguage(String language) {
+    _selectedLanguage = language;
+  }
+
+  void restartFromSettings() {
+    closeSettingsModal();
+    _startNewGame();
   }
 
   int _nextRainbowColorIndex() => _random.nextInt(_rainbowPaletteCount);

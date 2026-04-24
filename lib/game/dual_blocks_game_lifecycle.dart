@@ -25,7 +25,7 @@ extension _GameLifecycle on DualBlocksGame {
     _activeFateType = null;
     _activeFateReason = null;
     _fateBannerLeft = 0;
-    _showThemeMenu = false;
+    closeSettingsModal();
     _alignmentTurnSystem.turnCounter = 1;
     _refillTray(increaseTurn: false);
   }
