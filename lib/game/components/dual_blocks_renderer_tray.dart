@@ -74,7 +74,7 @@ void _drawTraySlots(
       if (devilGift == DevilGiftType.destructionAid) {
         _drawDevilDestructionDots(canvas, effectRect, effectTime, i);
       } else {
-        _drawDevilGreedDots(canvas, effectRect, effectTime, i);
+        _drawDevilSeedDots(canvas, effectRect, effectTime, i);
       }
     }
   }
@@ -108,7 +108,7 @@ void _drawAngelSparkles(
   }
 }
 
-void _drawDevilGreedDots(
+void _drawDevilSeedDots(
   Canvas canvas,
   Rect effectRect,
   double effectTime,

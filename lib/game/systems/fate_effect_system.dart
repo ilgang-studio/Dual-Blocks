@@ -11,7 +11,7 @@ class FateEffectSystem {
   }) {
     return preferred ??
         (random.nextBool()
-            ? DevilGiftType.greedBestBlock
+            ? DevilGiftType.seedOfRuin
             : DevilGiftType.destructionAid);
   }
 
