@@ -1,9 +1,11 @@
 import 'dart:math' as math;
+import 'dart:async';
 
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 
+import '../data/app_prefs.dart';
 import 'rendering/dual_blocks_renderer.dart';
 import 'config/game_constants.dart';
 import 'models/block/block_shape.dart';
@@ -203,15 +205,18 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
 
   void setThemeMode(BlockThemeMode mode) {
     _themeMode = mode;
+    unawaited(_persistSettings());
   }
 
   void setCustomThemeColor(Color color) {
     _customThemeColor = color;
+    unawaited(_persistSettings());
   }
 
   void setLanguage(String language) {
     if (!GameLocalization.supportedLanguages.contains(language)) return;
     _selectedLanguage = language;
+    unawaited(_persistSettings());
   }
 
   void restartFromSettings() {
@@ -220,4 +225,21 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   }
 
   int _nextRainbowColorIndex() => _random.nextInt(_rainbowPaletteCount);
+
+  void applyPersistedState(AppPrefsState state) {
+    _bestScore = state.bestScore;
+    _themeMode = state.themeMode;
+    _customThemeColor = state.customThemeColor;
+    if (GameLocalization.supportedLanguages.contains(state.language)) {
+      _selectedLanguage = state.language;
+    }
+  }
+
+  Future<void> _persistSettings() {
+    return AppPrefs.saveSettings(
+      themeMode: _themeMode,
+      customThemeColor: _customThemeColor,
+      language: _selectedLanguage,
+    );
+  }
 }
