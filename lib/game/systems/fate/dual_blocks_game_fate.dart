@@ -60,7 +60,10 @@ extension _GameFate on DualBlocksGame {
 
   DevilGiftType chooseDevilEffectType() {
     final emptyCount = FateEffectSystem.countEmptyCells(board: board);
-    if (emptyCount <= 12) return DevilGiftType.devilDestroy;
+    if (emptyCount <= 20) return DevilGiftType.devilDestroy;
+    if (emptyCount <= 28 && _random.nextDouble() < 0.45) {
+      return DevilGiftType.devilDestroy;
+    }
     return DevilGiftType.devilOneByOne;
   }
 
