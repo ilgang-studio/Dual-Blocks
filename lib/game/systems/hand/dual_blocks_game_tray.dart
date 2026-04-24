@@ -46,7 +46,6 @@ extension _GameTray on DualBlocksGame {
   }
 
   void _buildNormalTray() {
-    final useAngelHandRefine = _angelEasyHandBoostPending;
     final basePool = _guaranteeOneByOneNextTurn
         ? BlockCatalog.pool
               .where((shape) => shape.id != BlockCatalog.single.id)
@@ -61,7 +60,7 @@ extension _GameTray on DualBlocksGame {
       random: _random,
       blockPool: basePool,
       handSize: handSize,
-      weightResolver: useAngelHandRefine ? _angelRefinedWeight : null,
+      weightResolver: _resolveHandWeight,
     );
 
     if (_guaranteeOneByOneNextTurn) {
@@ -169,4 +168,33 @@ extension _GameTray on DualBlocksGame {
   }
 
   bool _isEasyShape(BlockShape shape) => shape.cells.length <= 3;
+
+  double _resolveHandWeight(BlockShape shape) {
+    var weight = shape.weight;
+
+    if (_angelEasyHandBoostPending) {
+      weight = _angelRefinedWeight(shape);
+    }
+
+    weight *= _lateGameBlockWeightMultiplier(shape);
+    return weight;
+  }
+
+  double _lateGameBlockWeightMultiplier(BlockShape shape) {
+    final cellCount = shape.cells.length;
+
+    if (score >= 1000) {
+      if (cellCount <= 2) return 0.35;
+      if (cellCount == 3) return 0.8;
+      return 1.5;
+    }
+
+    if (score >= 500) {
+      if (cellCount <= 2) return 0.6;
+      if (cellCount == 3) return 0.95;
+      return 1.25;
+    }
+
+    return 1.0;
+  }
 }

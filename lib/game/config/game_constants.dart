@@ -33,8 +33,8 @@ class GameConstants {
   static const int lineClearPointPerCell = 2;
   static const int lineClearBasePoint = 10;
   static const double lineClearMultiLineBonusMultiplier = 2.0;
-  static const double lineClearHighlightSeconds = 0.18;
-  static const double fateRemovalEffectSeconds = 0.18;
+  static const double lineClearHighlightSeconds = 0.30;
+  static const double fateRemovalEffectSeconds = 0.30;
   static const double scorePopupSeconds = 0.45;
   static const double scorePulseSeconds = 0.24;
   static const double placementSuccessSeconds = 0.14;
