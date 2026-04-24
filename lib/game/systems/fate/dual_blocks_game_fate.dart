@@ -19,8 +19,14 @@ extension _GameFate on DualBlocksGame {
     _lastFateSelection = FateType.devil;
     _devilStack += 1;
     _selectedFate = FateType.devil;
-    if (_devilStack >= GameConstants.fateTriggerStack) {
-      triggerDevil();
+
+    final selectedGift = _selectedDevilGift ?? _selectedTrayDevilGift;
+    if (selectedGift == DevilGiftType.devilOneByOne) {
+      applyDevilOneByOne();
+    }
+
+    if (_devilStack == GameConstants.fateTriggerStack) {
+      triggerDevilPenalty();
       _devilStack = 0;
     }
   }
@@ -45,28 +51,23 @@ extension _GameFate on DualBlocksGame {
     _evaluateGameOver();
   }
 
-  void triggerDevil() {
-    final selectedGift = FateEffectSystem.chooseDevilGiftType(
-      random: _random,
-      preferred: _selectedDevilGift,
-    );
-    _selectedDevilGift = null;
-
+  void triggerDevilPenalty() {
     score = (score * 0.9).toInt();
-
-    String summary;
-    if (selectedGift == DevilGiftType.seedOfRuin) {
-      _injectOneByOneIntoCurrentTray();
-      _guaranteeOneByOneNextTurn = true;
-      summary = 'Seed of Ruin: +1x1 now, +1x1 next hand';
-    } else {
-      final removed = _queueDevilDestructionRemoval(2);
-      summary = 'Destruction: collapse $removed block(s)';
-    }
-
-    _showFateBanner(FateType.devil, '$summary, -10% score');
-    debugPrint('[Devil Triggered] $summary');
+    _showFateBanner(FateType.devil, 'Devil penalty: -10% score');
+    debugPrint('[Devil Penalty] score reduced by 10%');
     _evaluateGameOver();
+  }
+
+  DevilGiftType chooseDevilEffectType() {
+    final emptyCount = FateEffectSystem.countEmptyCells(board: board);
+    if (emptyCount <= 12) return DevilGiftType.devilDestroy;
+    return DevilGiftType.devilOneByOne;
+  }
+
+  void applyDevilOneByOne() {
+    // Do not stack guarantees; one pending guarantee is enough.
+    if (_guaranteeOneByOneNextTurn) return;
+    _guaranteeOneByOneNextTurn = true;
   }
 
   void _showFateBanner(FateType type, String reason) {
@@ -98,17 +99,6 @@ extension _GameFate on DualBlocksGame {
       ..addAll(cells);
     _pendingFateRemovalEffectType = effectType;
     _fateRemovalLeft = GameConstants.fateRemovalEffectSeconds;
-  }
-
-  int _queueDevilDestructionRemoval(int targetCount) {
-    final picked = FateEffectSystem.pickDestructionCells(
-      board: board,
-      random: _random,
-      targetCount: targetCount,
-    );
-    if (picked.isEmpty) return 0;
-    _queueFateRemoval(picked, FateRemovalEffectType.devilBlast);
-    return picked.length;
   }
 
   void _resolvePendingFateRemoval() {

@@ -83,7 +83,7 @@ extension _GameTray on DualBlocksGame {
       GameConstants.traySlotCount,
       null,
     );
-    selectedTrayIndex = trayBlocks.isNotEmpty ? 0 : null;
+    selectedTrayIndex = TurnFlowSystem.nextSelectedIndex(trayBlocks);
     _selectedFate = selectedTrayIndex == null
         ? null
         : trayFates[selectedTrayIndex!];
@@ -93,18 +93,13 @@ extension _GameTray on DualBlocksGame {
   void _buildAlignmentTray() {
     final normal = _pickPlaceableRandomShape();
     final angel = _pickPlaceableRandomShape();
-    final devil = _pickPlaceableRandomShape();
+    final devilGift = chooseDevilEffectType();
+    final devil = BlockCatalog.single;
 
     trayBlocks = <BlockShape?>[normal, angel, devil];
     trayBlockColorIndices = <int?>[_nextRainbowColorIndex(), null, null];
     trayFates = <FateType?>[null, FateType.angel, FateType.devil];
-    trayDevilGifts = <DevilGiftType?>[
-      null,
-      null,
-      _random.nextBool()
-          ? DevilGiftType.seedOfRuin
-          : DevilGiftType.destructionAid,
-    ];
+    trayDevilGifts = <DevilGiftType?>[null, null, devilGift];
     selectedTrayIndex = null;
     _selectedFate = null;
     _selectedDevilGift = null;
@@ -174,29 +169,4 @@ extension _GameTray on DualBlocksGame {
   }
 
   bool _isEasyShape(BlockShape shape) => shape.cells.length <= 3;
-
-  void _injectOneByOneIntoCurrentTray() {
-    if (trayBlocks.isEmpty) return;
-
-    int targetIndex = trayBlocks.indexWhere((shape) => shape == null);
-    if (targetIndex == -1) {
-      targetIndex = selectedTrayIndex ?? 0;
-      targetIndex = targetIndex.clamp(0, trayBlocks.length - 1);
-    }
-
-    trayBlocks[targetIndex] = BlockCatalog.single;
-    if (targetIndex < trayBlockColorIndices.length) {
-      trayBlockColorIndices[targetIndex] = _nextRainbowColorIndex();
-    }
-    if (targetIndex < trayFates.length) {
-      trayFates[targetIndex] = FateType.devil;
-    }
-    if (targetIndex < trayDevilGifts.length) {
-      trayDevilGifts[targetIndex] = DevilGiftType.seedOfRuin;
-    }
-
-    selectedTrayIndex = targetIndex;
-    _selectedFate = FateType.devil;
-    _selectedDevilGift = DevilGiftType.seedOfRuin;
-  }
 }
