@@ -16,6 +16,7 @@ void _drawCells(
   List<List<CellState>> board, {
   required List<List<int?>> boardColorIndices,
   required BlockThemeMode themeMode,
+  required Color customThemeColor,
   required double effectTime,
 }) {
   for (int row = 0; row < GameConstants.boardSize; row++) {
@@ -32,6 +33,7 @@ void _drawCells(
           mode: themeMode,
           row: row,
           col: col,
+          customThemeColor: customThemeColor,
           effectTime: effectTime,
         );
         if (themeMode == BlockThemeMode.rainbow) {
@@ -134,6 +136,7 @@ Color _normalThemeColor({
   required BlockThemeMode mode,
   required int row,
   required int col,
+  required Color customThemeColor,
   required double effectTime,
 }) {
   assert(effectTime >= 0);
@@ -141,7 +144,7 @@ Color _normalThemeColor({
     case BlockThemeMode.solid:
       return GameConstants.normalBlockColor;
     case BlockThemeMode.custom:
-      return const Color(0xFFF59E0B);
+      return customThemeColor;
     case BlockThemeMode.rainbow:
       return _rainbowPaletteColor(row + (col * 3));
   }

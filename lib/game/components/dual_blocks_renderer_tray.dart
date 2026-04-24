@@ -20,6 +20,7 @@ void _drawTraySlots(
   int? selectedTrayIndex,
   double effectTime,
   BlockThemeMode themeMode,
+  Color customThemeColor,
 ) {
   final slotRects = layout.traySlotRects();
   for (var i = 0; i < slotRects.length; i++) {
@@ -60,6 +61,7 @@ void _drawTraySlots(
         fate: slotFate,
         scale: selectedTrayIndex == i ? 1.08 : 1.0,
         themeMode: themeMode,
+        customThemeColor: customThemeColor,
         effectTime: effectTime,
         slotIndex: i,
       );
@@ -194,6 +196,7 @@ void _drawShapePreview(
   FateType? fate,
   double scale = 1.0,
   required BlockThemeMode themeMode,
+  required Color customThemeColor,
   required double effectTime,
   required int slotIndex,
 }) {
@@ -235,6 +238,7 @@ void _drawShapePreview(
             mode: themeMode,
             row: point.y + slotIndex,
             col: point.x + slotIndex,
+            customThemeColor: customThemeColor,
             effectTime: effectTime,
           );
     DualBlocksRenderer._shapePreviewPaint.color = themedColor;

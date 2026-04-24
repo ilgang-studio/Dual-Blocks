@@ -13,7 +13,6 @@ void _drawHeader({
   required double effectTime,
   required double scorePulseProgress,
   required bool showThemeMenu,
-  required BlockThemeMode themeMode,
 }) {
   _drawScorePanelBackground(canvas, layout);
 
@@ -166,9 +165,6 @@ void _drawHeader({
   );
 
   _drawSettingsButton(canvas: canvas, layout: layout, isOpen: showThemeMenu);
-  if (showThemeMenu) {
-    _drawThemeMenu(canvas: canvas, layout: layout, selectedMode: themeMode);
-  }
 }
 
 void _drawHeaderStackDots({
@@ -243,57 +239,6 @@ void _drawSettingsButton({
   );
 
   _drawGearIcon(canvas, rect.center, const Color(0xFFE2E8F0));
-}
-
-void _drawThemeMenu({
-  required Canvas canvas,
-  required GameLayout layout,
-  required BlockThemeMode selectedMode,
-}) {
-  final menu = layout.themeMenuRect();
-  final panelPaint = Paint()..color = const Color(0xFF0F172A);
-  final panelBorder = Paint()
-    ..style = PaintingStyle.stroke
-    ..strokeWidth = 1
-    ..color = const Color(0xFF334155);
-  canvas.drawRRect(
-    RRect.fromRectAndRadius(menu, const Radius.circular(8)),
-    panelPaint,
-  );
-  canvas.drawRRect(
-    RRect.fromRectAndRadius(menu, const Radius.circular(8)),
-    panelBorder,
-  );
-
-  final options = BlockThemeMode.values;
-  for (var i = 0; i < options.length; i++) {
-    final rect = layout.themeOptionRect(i);
-    final option = options[i];
-    final isSelected = option == selectedMode;
-    final bg = Paint()
-      ..color = isSelected ? const Color(0xFF1D4ED8) : const Color(0x00000000);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(rect, const Radius.circular(6)),
-      bg,
-    );
-
-    final textPainter = TextPainter(
-      text: TextSpan(
-        text: option.label,
-        style: TextStyle(
-          color: isSelected ? Colors.white : const Color(0xFFCBD5E1),
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout(maxWidth: rect.width - 10);
-
-    textPainter.paint(
-      canvas,
-      Offset(rect.left + 8, rect.center.dy - (textPainter.height / 2)),
-    );
-  }
 }
 
 void _drawGearIcon(Canvas canvas, Offset center, Color color) {

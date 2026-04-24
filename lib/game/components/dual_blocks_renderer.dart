@@ -111,6 +111,7 @@ class DualBlocksRenderer {
       frame.board,
       boardColorIndices: frame.boardColorIndices,
       themeMode: frame.themeMode,
+      customThemeColor: frame.customThemeColor,
       effectTime: frame.effectTime,
     );
     if (frame.previewClearRows.isNotEmpty ||
@@ -169,7 +170,6 @@ class DualBlocksRenderer {
       effectTime: frame.effectTime,
       scorePulseProgress: frame.scorePulseProgress,
       showThemeMenu: frame.showThemeMenu,
-      themeMode: frame.themeMode,
     );
     _drawScorePopup(
       canvas: canvas,
@@ -197,6 +197,7 @@ class DualBlocksRenderer {
       frame.selectedTrayIndex,
       frame.effectTime,
       frame.themeMode,
+      frame.customThemeColor,
     );
     if (frame.isGameOver) {
       _drawGameOverOverlay(canvas, frame.layout);
