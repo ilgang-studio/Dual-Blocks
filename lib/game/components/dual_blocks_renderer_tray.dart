@@ -24,14 +24,9 @@ void _drawTraySlots(
   for (var i = 0; i < slotRects.length; i++) {
     final slotRect = slotRects[i];
     final slotFate = i < trayFates.length ? trayFates[i] : null;
-    final slotPaint = slotFate == FateType.angel
-        ? DualBlocksRenderer._angelBadgePaint
-        : slotFate == FateType.devil
-        ? DualBlocksRenderer._devilBadgePaint
-        : DualBlocksRenderer._slotPaint;
     canvas.drawRRect(
       RRect.fromRectAndRadius(slotRect, const Radius.circular(10)),
-      slotPaint,
+      DualBlocksRenderer._slotPaint,
     );
     if (selectedTrayIndex == i) {
       final glowRect = slotRect.inflate(6);
@@ -184,22 +179,7 @@ Path _buildStarPath(Offset center, double radius) {
 }
 
 void _drawAlignmentHeader(Canvas canvas, GameLayout layout) {
-  final painter = TextPainter(
-    text: const TextSpan(
-      text: 'ALIGNMENT TURN: Choose 1 (others discarded)',
-      style: TextStyle(
-        color: Color(0xFFFDE68A),
-        fontSize: 11,
-        fontWeight: FontWeight.w700,
-      ),
-    ),
-    textDirection: TextDirection.ltr,
-  )..layout(maxWidth: layout.bottomTrayRect.width);
-
-  painter.paint(
-    canvas,
-    Offset(layout.bottomTrayRect.left + 8, layout.bottomTrayRect.top - 16),
-  );
+  // Intentionally hidden: alignment hint text removed by design request.
 }
 
 void _drawShapePreview(
