@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import 'package:dual_blocks/game/systems/alignment_turn_system.dart';
+import 'package:dual_blocks/game/systems/turn/alignment_turn_system.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

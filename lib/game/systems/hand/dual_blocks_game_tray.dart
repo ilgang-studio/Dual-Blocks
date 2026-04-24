@@ -1,4 +1,4 @@
-part of 'dual_blocks_game.dart';
+part of '../../dual_blocks_game.dart';
 
 // Tray management: building hands, alignment tray, selection, consumption.
 extension _GameTray on DualBlocksGame {

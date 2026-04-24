@@ -1,4 +1,4 @@
-part of 'dual_blocks_game.dart';
+part of '../../dual_blocks_game.dart';
 
 // Input helpers: coordinate mapping, drag logic, theme menu tap handling.
 extension _GameInput on DualBlocksGame {

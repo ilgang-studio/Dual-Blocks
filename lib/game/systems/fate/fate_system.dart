@@ -1,5 +1,5 @@
-import '../models/cell_state.dart';
-import '../models/fate_effect.dart';
+import '../../models/board/cell_state.dart';
+import '../../models/fate/fate_effect.dart';
 
 class FateSystem {
   static FateDecision? evaluate({

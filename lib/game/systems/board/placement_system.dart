@@ -1,5 +1,5 @@
-import '../models/cell_state.dart';
-import '../models/block_shape.dart';
+import '../../models/board/cell_state.dart';
+import '../../models/block/block_shape.dart';
 
 class PlacementSystem {
   static bool canPlace({

@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 
 class AlignmentTurnSystem {
   AlignmentTurnSystem({math.Random? random, this.enableLogs = true})
-      : random = random ?? math.Random();
+    : random = random ?? math.Random();
 
   int turnCounter = 1;
   final math.Random random;

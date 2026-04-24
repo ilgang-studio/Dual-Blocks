@@ -1,4 +1,4 @@
-part of 'dual_blocks_game.dart';
+part of '../../dual_blocks_game.dart';
 
 // Block placement, line-clear resolution, destruction blocks, drop preview.
 extension _GamePlacement on DualBlocksGame {

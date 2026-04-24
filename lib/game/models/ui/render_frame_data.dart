@@ -2,10 +2,10 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import 'block_shape.dart';
+import '../block/block_shape.dart';
 import 'block_theme_mode.dart';
-import 'cell_state.dart';
-import 'fate_effect.dart';
+import '../board/cell_state.dart';
+import '../fate/fate_effect.dart';
 import 'game_layout.dart';
 
 class RenderFrameData {

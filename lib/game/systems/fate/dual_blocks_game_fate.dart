@@ -1,4 +1,4 @@
-part of 'dual_blocks_game.dart';
+part of '../../dual_blocks_game.dart';
 
 // Fate system: angel / devil selection, triggers, removal effects.
 extension _GameFate on DualBlocksGame {

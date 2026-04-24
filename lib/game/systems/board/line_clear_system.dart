@@ -1,7 +1,7 @@
-import '../models/block_shape.dart';
-import '../models/cell_state.dart';
-import '../models/line_clear_result.dart';
-import '../models/preview_clear_result.dart';
+import '../../models/block/block_shape.dart';
+import '../../models/board/cell_state.dart';
+import '../../models/board/line_clear_result.dart';
+import '../../models/board/preview_clear_result.dart';
 
 class LineClearSystem {
   static PreviewClearResult getPreviewClearLines({

@@ -3,17 +3,18 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../config/game_constants.dart';
-import '../models/block_shape.dart';
-import '../models/block_theme_mode.dart';
-import '../models/cell_state.dart';
-import '../models/fate_effect.dart';
-import '../models/game_layout.dart';
-import '../models/render_frame_data.dart';
+import '../models/block/block_shape.dart';
+import '../models/ui/block_theme_mode.dart';
+import '../models/board/cell_state.dart';
+import '../models/fate/fate_effect.dart';
+import '../models/ui/game_layout.dart';
+import '../models/ui/render_frame_data.dart';
 
-part 'dual_blocks_renderer_board.dart';
-part 'dual_blocks_renderer_header.dart';
-part 'dual_blocks_renderer_tray.dart';
-part 'dual_blocks_renderer_effects.dart';
+part 'board_renderer.dart';
+part 'score_renderer.dart';
+part 'hand_renderer.dart';
+part 'effect_renderer.dart';
+part 'preview_renderer.dart';
 
 class DualBlocksRenderer {
   static final Paint _boardPaint = Paint()

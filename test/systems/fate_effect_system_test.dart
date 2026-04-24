@@ -1,8 +1,8 @@
 import 'dart:math' as math;
 
-import 'package:dual_blocks/game/models/cell_state.dart';
-import 'package:dual_blocks/game/models/fate_effect.dart';
-import 'package:dual_blocks/game/systems/fate_effect_system.dart';
+import 'package:dual_blocks/game/models/board/cell_state.dart';
+import 'package:dual_blocks/game/models/fate/fate_effect.dart';
+import 'package:dual_blocks/game/systems/fate/fate_effect_system.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

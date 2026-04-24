@@ -1,4 +1,4 @@
-part of 'dual_blocks_game.dart';
+part of '../../dual_blocks_game.dart';
 
 // Game lifecycle: new game init, board reset, tray refill, game-over check.
 extension _GameLifecycle on DualBlocksGame {

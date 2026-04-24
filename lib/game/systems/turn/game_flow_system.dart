@@ -1,6 +1,6 @@
-import '../models/block_shape.dart';
-import '../models/cell_state.dart';
-import 'placement_system.dart';
+import '../../models/block/block_shape.dart';
+import '../../models/board/cell_state.dart';
+import '../board/placement_system.dart';
 
 class GameFlowSystem {
   static bool hasAnyPlaceableShape({

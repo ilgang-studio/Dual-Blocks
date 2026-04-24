@@ -1,4 +1,4 @@
-part of 'dual_blocks_game.dart';
+part of '../../dual_blocks_game.dart';
 
 // Score display: animated count-up, popup feedback.
 extension _GameScore on DualBlocksGame {
@@ -30,7 +30,8 @@ extension _GameScore on DualBlocksGame {
     );
     final eased = Curves.easeOutCubic.transform(t);
     _displayScore =
-        _displayScoreStart + ((_displayScoreTarget - _displayScoreStart) * eased);
+        _displayScoreStart +
+        ((_displayScoreTarget - _displayScoreStart) * eased);
 
     if (t >= 1.0) _displayScore = _displayScoreTarget.toDouble();
   }

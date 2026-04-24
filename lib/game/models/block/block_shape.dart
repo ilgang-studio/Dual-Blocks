@@ -33,13 +33,21 @@ class BlockCatalog {
 
   static const BlockShape line3 = BlockShape(
     id: 'line3',
-    cells: [math.Point<int>(0, 0), math.Point<int>(1, 0), math.Point<int>(2, 0)],
+    cells: [
+      math.Point<int>(0, 0),
+      math.Point<int>(1, 0),
+      math.Point<int>(2, 0),
+    ],
     weight: 8,
   );
 
   static const BlockShape line3V = BlockShape(
     id: 'line3_v',
-    cells: [math.Point<int>(0, 0), math.Point<int>(0, 1), math.Point<int>(0, 2)],
+    cells: [
+      math.Point<int>(0, 0),
+      math.Point<int>(0, 1),
+      math.Point<int>(0, 2),
+    ],
     weight: 8,
   );
 
@@ -131,13 +139,21 @@ class BlockCatalog {
 
   static const BlockShape l3 = BlockShape(
     id: 'l3',
-    cells: [math.Point<int>(0, 0), math.Point<int>(0, 1), math.Point<int>(1, 1)],
+    cells: [
+      math.Point<int>(0, 0),
+      math.Point<int>(0, 1),
+      math.Point<int>(1, 1),
+    ],
     weight: 5,
   );
 
   static const BlockShape reverseL3 = BlockShape(
     id: 'reverse_l3',
-    cells: [math.Point<int>(1, 0), math.Point<int>(1, 1), math.Point<int>(0, 1)],
+    cells: [
+      math.Point<int>(1, 0),
+      math.Point<int>(1, 1),
+      math.Point<int>(0, 1),
+    ],
     weight: 5,
   );
 

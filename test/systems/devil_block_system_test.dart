@@ -1,6 +1,6 @@
-import 'package:dual_blocks/game/models/block_shape.dart';
-import 'package:dual_blocks/game/models/cell_state.dart';
-import 'package:dual_blocks/game/systems/devil_block_system.dart';
+import 'package:dual_blocks/game/models/block/block_shape.dart';
+import 'package:dual_blocks/game/models/board/cell_state.dart';
+import 'package:dual_blocks/game/systems/fate/devil_block_system.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

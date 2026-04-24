@@ -1,5 +1,5 @@
-import '../config/game_constants.dart';
-import '../models/line_clear_result.dart';
+import '../../config/game_constants.dart';
+import '../../models/board/line_clear_result.dart';
 
 class ScoreSystem {
   static int estimateClearedCellCount(LineClearResult result) {

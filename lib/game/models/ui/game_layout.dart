@@ -1,8 +1,8 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import '../config/game_constants.dart';
-import 'fate_effect.dart';
+import '../../config/game_constants.dart';
+import '../fate/fate_effect.dart';
 
 class GameLayout {
   const GameLayout({

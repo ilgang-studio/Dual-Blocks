@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'game/dual_blocks_game.dart';
-import 'game/models/block_theme_mode.dart';
+import 'game/models/ui/block_theme_mode.dart';
 
 void main() {
   runApp(const MyApp());

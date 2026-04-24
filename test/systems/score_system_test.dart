@@ -1,5 +1,5 @@
-import 'package:dual_blocks/game/models/line_clear_result.dart';
-import 'package:dual_blocks/game/systems/score_system.dart';
+import 'package:dual_blocks/game/models/board/line_clear_result.dart';
+import 'package:dual_blocks/game/systems/score/score_system.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

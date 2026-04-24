@@ -1,5 +1,5 @@
-import 'package:dual_blocks/game/models/block_shape.dart';
-import 'package:dual_blocks/game/systems/turn_flow_system.dart';
+import 'package:dual_blocks/game/models/block/block_shape.dart';
+import 'package:dual_blocks/game/systems/turn/turn_flow_system.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

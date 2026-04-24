@@ -1,4 +1,4 @@
-import '../models/block_shape.dart';
+import '../../models/block/block_shape.dart';
 
 class TurnFlowSystem {
   static int? nextSelectedIndex(List<BlockShape?> trayBlocks) {

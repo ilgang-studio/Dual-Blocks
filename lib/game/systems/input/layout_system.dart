@@ -3,13 +3,14 @@ import 'dart:math' as math;
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 
-import '../config/game_constants.dart';
-import '../models/game_layout.dart';
+import '../../config/game_constants.dart';
+import '../../models/ui/game_layout.dart';
 
 class LayoutSystem {
   static GameLayout calculate(Vector2 size) {
     final usableWidth = size.x - (GameConstants.horizontalPadding * 2);
-    final usableHeight = size.y -
+    final usableHeight =
+        size.y -
         GameConstants.topPadding -
         GameConstants.trayHeight -
         GameConstants.sectionGap -
@@ -23,7 +24,12 @@ class LayoutSystem {
 
     final boardLeft = (size.x - boardPixels) / 2;
     final boardTop = GameConstants.topPadding;
-    final boardRect = Rect.fromLTWH(boardLeft, boardTop, boardPixels, boardPixels);
+    final boardRect = Rect.fromLTWH(
+      boardLeft,
+      boardTop,
+      boardPixels,
+      boardPixels,
+    );
 
     final scoreRect = Rect.fromLTWH(
       boardLeft,

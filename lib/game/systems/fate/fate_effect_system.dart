@@ -1,8 +1,8 @@
 import 'dart:math' as math;
 
-import '../config/game_constants.dart';
-import '../models/cell_state.dart';
-import '../models/fate_effect.dart';
+import '../../config/game_constants.dart';
+import '../../models/board/cell_state.dart';
+import '../../models/fate/fate_effect.dart';
 
 class FateEffectSystem {
   static DevilGiftType chooseDevilGiftType({

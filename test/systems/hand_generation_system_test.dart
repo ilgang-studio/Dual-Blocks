@@ -1,8 +1,8 @@
 import 'dart:math' as math;
 
-import 'package:dual_blocks/game/models/block_shape.dart';
-import 'package:dual_blocks/game/models/cell_state.dart';
-import 'package:dual_blocks/game/systems/hand_generation_system.dart';
+import 'package:dual_blocks/game/models/block/block_shape.dart';
+import 'package:dual_blocks/game/models/board/cell_state.dart';
+import 'package:dual_blocks/game/systems/hand/hand_generation_system.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -39,26 +39,29 @@ void main() {
     expect(bigCount <= 1, isTrue);
   });
 
-  test('generateHand guarantees at least one placeable block when possible', () {
-    final board = boardOf(8);
-    final impossibleByWeight = [
-      const BlockShape(
-        id: 'forced',
-        cells: [math.Point<int>(0, 0)],
-        weight: -1,
-      ),
-    ];
+  test(
+    'generateHand guarantees at least one placeable block when possible',
+    () {
+      final board = boardOf(8);
+      final impossibleByWeight = [
+        const BlockShape(
+          id: 'forced',
+          cells: [math.Point<int>(0, 0)],
+          weight: -1,
+        ),
+      ];
 
-    final hand = HandGenerationSystem.generateHand(
-      board,
-      random: math.Random(1),
-      blockPool: impossibleByWeight,
-      handSize: 3,
-    );
+      final hand = HandGenerationSystem.generateHand(
+        board,
+        random: math.Random(1),
+        blockPool: impossibleByWeight,
+        handSize: 3,
+      );
 
-    expect(hand.isNotEmpty, isTrue);
-    expect(HandGenerationSystem.canPlaceAnywhere(board, hand.first), isTrue);
-  });
+      expect(hand.isNotEmpty, isTrue);
+      expect(HandGenerationSystem.canPlaceAnywhere(board, hand.first), isTrue);
+    },
+  );
 
   test('canPlaceAnywhere returns false when board is full', () {
     final board = boardOf(4);
