@@ -33,16 +33,93 @@ void _drawCells(
           col: col,
           effectTime: effectTime,
         );
-        canvas.drawRect(rect, DualBlocksRenderer._cellFallbackPaint);
+        _drawBeveledBlockTile(
+          canvas: canvas,
+          rect: rect,
+          color: DualBlocksRenderer._cellFallbackPaint.color,
+          cornerRadius: 2.5,
+        );
       }
       if (board[row][col] == CellState.angelFilled) {
-        canvas.drawRect(rect, DualBlocksRenderer._angelCellPaint);
+        _drawBeveledBlockTile(
+          canvas: canvas,
+          rect: rect,
+          color: DualBlocksRenderer._angelCellPaint.color,
+          cornerRadius: 2.5,
+        );
       }
       if (board[row][col] == CellState.devilFilled) {
-        canvas.drawRect(rect, DualBlocksRenderer._devilCellPaint);
+        _drawBeveledBlockTile(
+          canvas: canvas,
+          rect: rect,
+          color: DualBlocksRenderer._devilCellPaint.color,
+          cornerRadius: 2.5,
+        );
       }
     }
   }
+}
+
+void _drawBeveledBlockTile({
+  required Canvas canvas,
+  required Rect rect,
+  required Color color,
+  required double cornerRadius,
+}) {
+  final base = RRect.fromRectAndRadius(rect, Radius.circular(cornerRadius));
+  final inner = rect.deflate(0.6);
+  final innerRRect = RRect.fromRectAndRadius(
+    inner,
+    Radius.circular(cornerRadius * 0.85),
+  );
+
+  DualBlocksRenderer._cellFallbackPaint.color = color;
+  canvas.drawRRect(base, DualBlocksRenderer._cellFallbackPaint);
+
+  DualBlocksRenderer._blockBevelHighlightPaint.shader = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [
+      Colors.white.withValues(alpha: 0.34),
+      Colors.white.withValues(alpha: 0.08),
+      Colors.transparent,
+    ],
+    stops: const [0.0, 0.32, 1.0],
+  ).createShader(inner);
+  canvas.drawRRect(innerRRect, DualBlocksRenderer._blockBevelHighlightPaint);
+
+  DualBlocksRenderer._blockBevelShadowPaint.shader = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [
+      Colors.transparent,
+      Colors.black.withValues(alpha: 0.1),
+      Colors.black.withValues(alpha: 0.28),
+    ],
+    stops: const [0.0, 0.58, 1.0],
+  ).createShader(inner);
+  canvas.drawRRect(innerRRect, DualBlocksRenderer._blockBevelShadowPaint);
+
+  final topEdgeRect = Rect.fromLTWH(
+    inner.left + 1,
+    inner.top + 1,
+    inner.width * 0.78,
+    (inner.height * 0.16).clamp(1.2, 5.0),
+  );
+  final topEdge = RRect.fromRectAndRadius(
+    topEdgeRect,
+    Radius.circular(cornerRadius * 0.6),
+  );
+  DualBlocksRenderer._blockBevelHighlightPaint.shader = null;
+  DualBlocksRenderer._blockBevelHighlightPaint.color = Colors.white.withValues(
+    alpha: 0.24,
+  );
+  canvas.drawRRect(topEdge, DualBlocksRenderer._blockBevelHighlightPaint);
+
+  DualBlocksRenderer._blockBevelBorderPaint.color = Colors.black.withValues(
+    alpha: 0.22,
+  );
+  canvas.drawRRect(innerRRect, DualBlocksRenderer._blockBevelBorderPaint);
 }
 
 Color _normalThemeColor({

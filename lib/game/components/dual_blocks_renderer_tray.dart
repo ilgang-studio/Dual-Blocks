@@ -255,12 +255,11 @@ void _drawShapePreview(
         : fate == FateType.devil
         ? DualBlocksRenderer._shapePreviewDevilPaint
         : DualBlocksRenderer._shapePreviewPaint;
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(left, top, cellSize - 2, cellSize - 2),
-        const Radius.circular(3),
-      ),
-      paint,
+    _drawBeveledBlockTile(
+      canvas: canvas,
+      rect: Rect.fromLTWH(left, top, cellSize - 2, cellSize - 2),
+      color: paint.color,
+      cornerRadius: 3,
     );
   }
 }

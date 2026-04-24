@@ -91,6 +91,13 @@ class DualBlocksRenderer {
   static final Paint _devilGreenDotPaint = Paint()
     ..color = const Color(0xFF22C55E)
     ..style = PaintingStyle.fill;
+  static final Paint _blockBevelHighlightPaint = Paint()
+    ..style = PaintingStyle.fill;
+  static final Paint _blockBevelShadowPaint = Paint()
+    ..style = PaintingStyle.fill;
+  static final Paint _blockBevelBorderPaint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 1;
 
   static void render({required Canvas canvas, required RenderFrameData frame}) {
     _shapePreviewPaint.color = _cellFallbackPaint.color;
