@@ -1,6 +1,6 @@
 part of '../../dual_blocks_game.dart';
 
-// Block placement, line-clear resolution, destruction blocks, drop preview.
+// Block placement, line-clear resolution, drop preview.
 extension _GamePlacement on DualBlocksGame {
   CellState get _currentFillState {
     if (_selectedFate == FateType.angel) return CellState.angelFilled;
@@ -8,14 +8,9 @@ extension _GamePlacement on DualBlocksGame {
     return CellState.filled;
   }
 
-  bool get _isSelectedDestructionBlock =>
-      _selectedFate == FateType.devil &&
-      _selectedTrayDevilGift == DevilGiftType.destructionAid;
-
   bool canPlace(int row, int col) {
     if (_pendingClearResult != null) return false;
     if (_pendingFateRemovalCells.isNotEmpty) return false;
-    if (_isSelectedDestructionBlock) return _canApplyDestructionShape(row, col);
     final selectedShape = _selectedShape;
     if (selectedShape == null) return false;
     return PlacementSystem.canPlaceShape(
@@ -28,13 +23,6 @@ extension _GamePlacement on DualBlocksGame {
 
   bool placeBlock(int row, int col) {
     if (isGameOver) return false;
-    if (_isSelectedDestructionBlock) {
-      if (!canPlace(row, col)) return false;
-      _applyDestructionShape(row, col);
-      _consumeSelectedTrayBlock();
-      return true;
-    }
-
     final selectedShape = _selectedShape;
     if (selectedShape == null) return false;
 
@@ -141,51 +129,8 @@ extension _GamePlacement on DualBlocksGame {
     }
   }
 
-  bool _canApplyDestructionShape(int anchorRow, int anchorCol) {
-    final selectedShape = _selectedShape;
-    if (selectedShape == null) return false;
-
-    var hasOccupiedTarget = false;
-    for (final cell in selectedShape.cells) {
-      final row = anchorRow + cell.y;
-      final col = anchorCol + cell.x;
-      if (row < 0 ||
-          row >= GameConstants.boardSize ||
-          col < 0 ||
-          col >= GameConstants.boardSize) {
-        return false;
-      }
-      if (board[row][col].isOccupied) hasOccupiedTarget = true;
-    }
-    return hasOccupiedTarget;
-  }
-
-  void _applyDestructionShape(int anchorRow, int anchorCol) {
-    final selectedShape = _selectedShape;
-    if (selectedShape == null) return;
-    final removalTargets = <math.Point<int>>[];
-
-    for (final cell in selectedShape.cells) {
-      final row = anchorRow + cell.y;
-      final col = anchorCol + cell.x;
-      if (row < 0 ||
-          row >= GameConstants.boardSize ||
-          col < 0 ||
-          col >= GameConstants.boardSize) {
-        continue;
-      }
-      if (!board[row][col].isOccupied) continue;
-      removalTargets.add(math.Point(col, row));
-    }
-    _queueFateRemoval(removalTargets, FateRemovalEffectType.devilBlockBreak);
-  }
-
   void _updatePreviewClearState() {
     if (!_isDraggingBlock) {
-      _previewClearResult = PreviewClearResult.empty;
-      return;
-    }
-    if (_isSelectedDestructionBlock) {
       _previewClearResult = PreviewClearResult.empty;
       return;
     }

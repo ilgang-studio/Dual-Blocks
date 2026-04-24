@@ -71,8 +71,8 @@ void _drawTraySlots(
       _drawAngelSparkles(canvas, effectRect, effectTime, i);
     } else if (slotFate == FateType.devil) {
       final devilGift = i < trayDevilGifts.length ? trayDevilGifts[i] : null;
-      if (devilGift == DevilGiftType.destructionAid) {
-        _drawDevilDestructionDots(canvas, effectRect, effectTime, i);
+      if (devilGift == DevilGiftType.randomShapeDelete) {
+        _drawDevilDeleteDots(canvas, effectRect, effectTime, i);
       } else {
         _drawDevilSeedDots(canvas, effectRect, effectTime, i);
       }
@@ -135,7 +135,7 @@ void _drawDevilSeedDots(
   }
 }
 
-void _drawDevilDestructionDots(
+void _drawDevilDeleteDots(
   Canvas canvas,
   Rect effectRect,
   double effectTime,

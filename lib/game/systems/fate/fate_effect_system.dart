@@ -12,7 +12,7 @@ class FateEffectSystem {
     return preferred ??
         (random.nextBool()
             ? DevilGiftType.seedOfRuin
-            : DevilGiftType.destructionAid);
+            : DevilGiftType.randomShapeDelete);
   }
 
   static math.Point<int>? findRescueCleanupCell({

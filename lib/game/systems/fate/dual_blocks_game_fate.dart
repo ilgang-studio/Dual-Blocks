@@ -56,12 +56,11 @@ extension _GameFate on DualBlocksGame {
 
     String summary;
     if (selectedGift == DevilGiftType.seedOfRuin) {
-      _injectOneByOneIntoCurrentTray();
       _guaranteeOneByOneNextTurn = true;
-      summary = 'Seed of Ruin: +1x1 now, +1x1 next hand';
+      summary = 'Seed of Ruin: next hand includes 1x1';
     } else {
-      final removed = _queueDevilDestructionRemoval(2);
-      summary = 'Destruction: collapse $removed block(s)';
+      _removeRandomShapeNextTurn = true;
+      summary = 'Entropy Tax: remove 1 random shape from next hand';
     }
 
     _showFateBanner(FateType.devil, '$summary, -10% score');
@@ -98,17 +97,6 @@ extension _GameFate on DualBlocksGame {
       ..addAll(cells);
     _pendingFateRemovalEffectType = effectType;
     _fateRemovalLeft = GameConstants.fateRemovalEffectSeconds;
-  }
-
-  int _queueDevilDestructionRemoval(int targetCount) {
-    final picked = FateEffectSystem.pickDestructionCells(
-      board: board,
-      random: _random,
-      targetCount: targetCount,
-    );
-    if (picked.isEmpty) return 0;
-    _queueFateRemoval(picked, FateRemovalEffectType.devilBlast);
-    return picked.length;
   }
 
   void _resolvePendingFateRemoval() {
