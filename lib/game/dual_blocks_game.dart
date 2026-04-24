@@ -89,7 +89,6 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   double _nextClearScoreMultiplier = 1.0;
   bool _angelEasyHandBoostPending = false;
   bool _guaranteeOneByOneNextTurn = false;
-  bool _removeRandomShapeNextTurn = false;
   DevilGiftType? _selectedDevilGift;
   FateType? _selectedFate;
   FateType? _activeFateType;

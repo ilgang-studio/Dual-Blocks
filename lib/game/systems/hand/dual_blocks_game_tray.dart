@@ -16,6 +16,13 @@ extension _GameTray on DualBlocksGame {
     return trayBlockColorIndices[index];
   }
 
+  DevilGiftType? get _selectedTrayDevilGift {
+    final index = selectedTrayIndex;
+    if (index == null) return null;
+    if (index < 0 || index >= trayDevilGifts.length) return null;
+    return trayDevilGifts[index];
+  }
+
   bool trySelectTrayFromScreen(Offset screenPosition) {
     if (isGameOver) return false;
     if (_pendingClearResult != null) return false;
@@ -76,7 +83,6 @@ extension _GameTray on DualBlocksGame {
       GameConstants.traySlotCount,
       null,
     );
-    _applyPendingRandomShapeDeletionToNextTray();
     selectedTrayIndex = TurnFlowSystem.nextSelectedIndex(trayBlocks);
     _selectedFate = selectedTrayIndex == null
         ? null
@@ -87,18 +93,13 @@ extension _GameTray on DualBlocksGame {
   void _buildAlignmentTray() {
     final normal = _pickPlaceableRandomShape();
     final angel = _pickPlaceableRandomShape();
-    final devil = _pickPlaceableRandomShape();
+    final devilGift = chooseDevilEffectType();
+    final devil = BlockCatalog.single;
 
     trayBlocks = <BlockShape?>[normal, angel, devil];
     trayBlockColorIndices = <int?>[_nextRainbowColorIndex(), null, null];
     trayFates = <FateType?>[null, FateType.angel, FateType.devil];
-    trayDevilGifts = <DevilGiftType?>[
-      null,
-      null,
-      _random.nextBool()
-          ? DevilGiftType.seedOfRuin
-          : DevilGiftType.randomShapeDelete,
-    ];
+    trayDevilGifts = <DevilGiftType?>[null, null, devilGift];
     selectedTrayIndex = null;
     _selectedFate = null;
     _selectedDevilGift = null;
@@ -168,33 +169,4 @@ extension _GameTray on DualBlocksGame {
   }
 
   bool _isEasyShape(BlockShape shape) => shape.cells.length <= 3;
-
-  void _applyPendingRandomShapeDeletionToNextTray() {
-    if (!_removeRandomShapeNextTurn) return;
-    _removeRandomShapeNextTurn = false;
-    if (trayBlocks.isEmpty) return;
-
-    final occupied = <int>[];
-    final removableExceptSingle = <int>[];
-    for (var i = 0; i < trayBlocks.length; i++) {
-      final shape = trayBlocks[i];
-      if (shape == null) continue;
-      occupied.add(i);
-      if (shape.id != BlockCatalog.single.id) {
-        removableExceptSingle.add(i);
-      }
-    }
-    if (occupied.length <= 1) return;
-
-    final candidatePool = removableExceptSingle.isNotEmpty
-        ? removableExceptSingle
-        : occupied;
-    final removeIndex = candidatePool[_random.nextInt(candidatePool.length)];
-    trayBlocks[removeIndex] = null;
-    if (removeIndex < trayBlockColorIndices.length) {
-      trayBlockColorIndices[removeIndex] = null;
-    }
-    if (removeIndex < trayFates.length) trayFates[removeIndex] = null;
-    if (removeIndex < trayDevilGifts.length) trayDevilGifts[removeIndex] = null;
-  }
 }

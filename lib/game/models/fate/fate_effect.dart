@@ -1,6 +1,6 @@
 enum FateType { angel, devil }
 
-enum DevilGiftType { seedOfRuin, randomShapeDelete }
+enum DevilGiftType { devilOneByOne, devilDestroy }
 
 enum FateRemovalEffectType { angelPurge, devilBlast, devilBlockBreak }
 

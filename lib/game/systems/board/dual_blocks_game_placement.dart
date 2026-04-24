@@ -8,9 +8,16 @@ extension _GamePlacement on DualBlocksGame {
     return CellState.filled;
   }
 
+  bool get _isSelectedDevilDestroy =>
+      _selectedFate == FateType.devil &&
+      _selectedTrayDevilGift == DevilGiftType.devilDestroy;
+
   bool canPlace(int row, int col) {
     if (_pendingClearResult != null) return false;
     if (_pendingFateRemovalCells.isNotEmpty) return false;
+    if (_isSelectedDevilDestroy) {
+      return _canApplyDevilDestroy(row, col);
+    }
     final selectedShape = _selectedShape;
     if (selectedShape == null) return false;
     return PlacementSystem.canPlaceShape(
@@ -23,6 +30,13 @@ extension _GamePlacement on DualBlocksGame {
 
   bool placeBlock(int row, int col) {
     if (isGameOver) return false;
+    if (_isSelectedDevilDestroy) {
+      final removed = applyDevilDestroy(row, col);
+      if (!removed) return false;
+      _consumeSelectedTrayBlock();
+      return true;
+    }
+
     final selectedShape = _selectedShape;
     if (selectedShape == null) return false;
 
@@ -134,6 +148,10 @@ extension _GamePlacement on DualBlocksGame {
       _previewClearResult = PreviewClearResult.empty;
       return;
     }
+    if (_isSelectedDevilDestroy) {
+      _previewClearResult = PreviewClearResult.empty;
+      return;
+    }
 
     final selectedShape = _draggingShape;
     final screenPosition = _dragScreenPosition;
@@ -162,5 +180,23 @@ extension _GamePlacement on DualBlocksGame {
       anchorCol: col,
       fillState: _currentFillState,
     );
+  }
+
+  bool _canApplyDevilDestroy(int row, int col) {
+    if (row < 0 ||
+        row >= GameConstants.boardSize ||
+        col < 0 ||
+        col >= GameConstants.boardSize) {
+      return false;
+    }
+    return board[row][col].isOccupied;
+  }
+
+  bool applyDevilDestroy(int row, int col) {
+    if (!_canApplyDevilDestroy(row, col)) return false;
+    _queueFateRemoval([
+      math.Point<int>(col, row),
+    ], FateRemovalEffectType.devilBlockBreak);
+    return true;
   }
 }

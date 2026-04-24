@@ -19,8 +19,14 @@ extension _GameFate on DualBlocksGame {
     _lastFateSelection = FateType.devil;
     _devilStack += 1;
     _selectedFate = FateType.devil;
-    if (_devilStack >= GameConstants.fateTriggerStack) {
-      triggerDevil();
+
+    final selectedGift = _selectedDevilGift ?? _selectedTrayDevilGift;
+    if (selectedGift == DevilGiftType.devilOneByOne) {
+      applyDevilOneByOne();
+    }
+
+    if (_devilStack == GameConstants.fateTriggerStack) {
+      triggerDevilPenalty();
       _devilStack = 0;
     }
   }
@@ -45,27 +51,23 @@ extension _GameFate on DualBlocksGame {
     _evaluateGameOver();
   }
 
-  void triggerDevil() {
-    final selectedGift = FateEffectSystem.chooseDevilGiftType(
-      random: _random,
-      preferred: _selectedDevilGift,
-    );
-    _selectedDevilGift = null;
-
+  void triggerDevilPenalty() {
     score = (score * 0.9).toInt();
-
-    String summary;
-    if (selectedGift == DevilGiftType.seedOfRuin) {
-      _guaranteeOneByOneNextTurn = true;
-      summary = 'Seed of Ruin: next hand includes 1x1';
-    } else {
-      _removeRandomShapeNextTurn = true;
-      summary = 'Entropy Tax: remove 1 random shape from next hand';
-    }
-
-    _showFateBanner(FateType.devil, '$summary, -10% score');
-    debugPrint('[Devil Triggered] $summary');
+    _showFateBanner(FateType.devil, 'Devil penalty: -10% score');
+    debugPrint('[Devil Penalty] score reduced by 10%');
     _evaluateGameOver();
+  }
+
+  DevilGiftType chooseDevilEffectType() {
+    final emptyCount = FateEffectSystem.countEmptyCells(board: board);
+    if (emptyCount <= 12) return DevilGiftType.devilDestroy;
+    return DevilGiftType.devilOneByOne;
+  }
+
+  void applyDevilOneByOne() {
+    // Do not stack guarantees; one pending guarantee is enough.
+    if (_guaranteeOneByOneNextTurn) return;
+    _guaranteeOneByOneNextTurn = true;
   }
 
   void _showFateBanner(FateType type, String reason) {

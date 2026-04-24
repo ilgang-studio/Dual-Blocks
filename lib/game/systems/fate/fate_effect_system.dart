@@ -5,14 +5,21 @@ import '../../models/board/cell_state.dart';
 import '../../models/fate/fate_effect.dart';
 
 class FateEffectSystem {
+  static int countEmptyCells({required List<List<CellState>> board}) {
+    var count = 0;
+    for (var row = 0; row < board.length; row++) {
+      for (var col = 0; col < board[row].length; col++) {
+        if (!board[row][col].isOccupied) count += 1;
+      }
+    }
+    return count;
+  }
+
   static DevilGiftType chooseDevilGiftType({
     required math.Random random,
     DevilGiftType? preferred,
   }) {
-    return preferred ??
-        (random.nextBool()
-            ? DevilGiftType.seedOfRuin
-            : DevilGiftType.randomShapeDelete);
+    return preferred ?? DevilGiftType.devilOneByOne;
   }
 
   static math.Point<int>? findRescueCleanupCell({

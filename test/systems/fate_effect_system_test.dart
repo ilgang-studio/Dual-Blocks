@@ -16,9 +16,9 @@ void main() {
   test('chooseDevilGiftType respects preferred gift when provided', () {
     final picked = FateEffectSystem.chooseDevilGiftType(
       random: math.Random(0),
-      preferred: DevilGiftType.seedOfRuin,
+      preferred: DevilGiftType.devilOneByOne,
     );
-    expect(picked, DevilGiftType.seedOfRuin);
+    expect(picked, DevilGiftType.devilOneByOne);
   });
 
   test(

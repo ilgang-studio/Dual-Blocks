@@ -23,7 +23,6 @@ extension _GameLifecycle on DualBlocksGame {
     _nextClearScoreMultiplier = 1.0;
     _angelEasyHandBoostPending = false;
     _guaranteeOneByOneNextTurn = false;
-    _removeRandomShapeNextTurn = false;
     _selectedDevilGift = null;
     _effectTime = 0;
     _activeFateType = null;
@@ -59,7 +58,7 @@ extension _GameLifecycle on DualBlocksGame {
       _didClearLineThisTurn = false;
     }
     isAlignmentTurn = _alignmentTurnSystem.shouldStartAlignmentTurn();
-    if (_guaranteeOneByOneNextTurn || _removeRandomShapeNextTurn) {
+    if (_guaranteeOneByOneNextTurn) {
       isAlignmentTurn = false;
     }
     if (isAlignmentTurn) {
