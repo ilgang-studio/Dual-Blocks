@@ -9,6 +9,7 @@ import '../models/board/cell_state.dart';
 import '../models/fate/fate_effect.dart';
 import '../models/ui/game_layout.dart';
 import '../models/ui/render_frame_data.dart';
+import '../localization/game_localization.dart';
 
 part 'board_renderer.dart';
 part 'score_renderer.dart';
@@ -171,6 +172,7 @@ class DualBlocksRenderer {
       effectTime: frame.effectTime,
       scorePulseProgress: frame.scorePulseProgress,
       showThemeMenu: frame.showThemeMenu,
+      language: frame.language,
     );
     _drawScorePopup(
       canvas: canvas,
@@ -181,7 +183,13 @@ class DualBlocksRenderer {
     if (frame.showFateBanner &&
         frame.fateType != null &&
         frame.fateReason != null) {
-      _drawFateBanner(canvas, frame.layout, frame.fateType!, frame.fateReason!);
+      _drawFateBanner(
+        canvas,
+        frame.layout,
+        frame.fateType!,
+        frame.fateReason!,
+        frame.language,
+      );
     }
     _drawGrid(canvas, frame.layout);
     _drawBottomTray(canvas, frame.layout);
@@ -201,7 +209,7 @@ class DualBlocksRenderer {
       frame.customThemeColor,
     );
     if (frame.isGameOver) {
-      _drawGameOverOverlay(canvas, frame.layout);
+      _drawGameOverOverlay(canvas, frame.layout, frame.language);
     }
   }
 }

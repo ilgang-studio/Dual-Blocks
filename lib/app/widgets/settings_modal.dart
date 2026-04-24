@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../game/dual_blocks_game.dart';
+import '../../game/localization/game_localization.dart';
 import '../../game/models/ui/block_theme_mode.dart';
 
 class SettingsModal extends StatefulWidget {
@@ -19,7 +20,7 @@ class _SettingsModalState extends State<SettingsModal> {
   late Color _customColor;
   late String _language;
 
-  static const _languages = <String>['English', '한국어', '日本語'];
+  static const _languages = GameLocalization.supportedLanguages;
 
   @override
   void initState() {
@@ -64,10 +65,10 @@ class _SettingsModalState extends State<SettingsModal> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const Text(
-                        'Setting',
+                      Text(
+                        GameLocalization.settingsTitle(_language),
                         textAlign: TextAlign.center,
-                        style: TextStyle(
+                        style: const TextStyle(
                           color: Color(0xFFE2E8F0),
                           fontSize: 28,
                           fontWeight: FontWeight.w800,
@@ -81,12 +82,12 @@ class _SettingsModalState extends State<SettingsModal> {
                       _buildLanguageSection(),
                       const SizedBox(height: 22),
                       _buildActionButton(
-                        label: 'Restart',
+                        label: GameLocalization.restart(_language),
                         onPressed: widget.game.restartFromSettings,
                       ),
                       const SizedBox(height: 10),
                       _buildActionButton(
-                        label: 'Exit',
+                        label: GameLocalization.exit(_language),
                         onPressed: () async {
                           widget.onClose();
                           await SystemNavigator.pop();
@@ -105,9 +106,18 @@ class _SettingsModalState extends State<SettingsModal> {
 
   Widget _buildThemeSelector() {
     final items = <({BlockThemeMode mode, String label})>[
-      (mode: BlockThemeMode.solid, label: 'Basic'),
-      (mode: BlockThemeMode.custom, label: 'Custom'),
-      (mode: BlockThemeMode.rainbow, label: 'Colorful'),
+      (
+        mode: BlockThemeMode.solid,
+        label: GameLocalization.basicTheme(_language),
+      ),
+      (
+        mode: BlockThemeMode.custom,
+        label: GameLocalization.customTheme(_language),
+      ),
+      (
+        mode: BlockThemeMode.rainbow,
+        label: GameLocalization.colorfulTheme(_language),
+      ),
     ];
 
     return Row(
@@ -155,8 +165,8 @@ class _SettingsModalState extends State<SettingsModal> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Custom Color',
+            Text(
+              GameLocalization.customColor(_language),
               style: TextStyle(
                 color: Color(0xFFCBD5E1),
                 fontSize: 14,
@@ -254,10 +264,10 @@ class _SettingsModalState extends State<SettingsModal> {
   Widget _buildLanguageSection() {
     return Row(
       children: [
-        const Expanded(
+        Expanded(
           child: Text(
-            'Language',
-            style: TextStyle(
+            GameLocalization.languageLabel(_language),
+            style: const TextStyle(
               color: Color(0xFFE2E8F0),
               fontSize: 18,
               fontWeight: FontWeight.w700,

@@ -240,12 +240,15 @@ void _drawFateRemovalOverlay({
   }
 }
 
-void _drawGameOverOverlay(Canvas canvas, GameLayout layout) {
+void _drawGameOverOverlay(Canvas canvas, GameLayout layout, String language) {
   canvas.drawRect(layout.boardRect, DualBlocksRenderer._gameOverOverlayPaint);
+  final textDirection = GameLocalization.isRtl(language)
+      ? TextDirection.rtl
+      : TextDirection.ltr;
 
   final titlePainter = TextPainter(
-    text: const TextSpan(
-      text: 'GAME OVER',
+    text: TextSpan(
+      text: GameLocalization.gameOverTitle(language),
       style: TextStyle(
         color: Colors.white,
         fontSize: 24,
@@ -253,19 +256,19 @@ void _drawGameOverOverlay(Canvas canvas, GameLayout layout) {
         letterSpacing: 1.2,
       ),
     ),
-    textDirection: TextDirection.ltr,
+    textDirection: textDirection,
   )..layout();
 
   final hintPainter = TextPainter(
-    text: const TextSpan(
-      text: 'Tap anywhere to restart',
+    text: TextSpan(
+      text: GameLocalization.gameOverHint(language),
       style: TextStyle(
         color: Color(0xFFD1D5DB),
         fontSize: 13,
         fontWeight: FontWeight.w500,
       ),
     ),
-    textDirection: TextDirection.ltr,
+    textDirection: textDirection,
   )..layout();
 
   titlePainter.paint(

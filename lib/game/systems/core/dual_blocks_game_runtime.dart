@@ -112,6 +112,7 @@ extension _GameRuntime on DualBlocksGame {
         placeSuccessProgress:
             _placeSuccessLeft / GameConstants.placementSuccessSeconds,
         placeFailProgress: _placeFailLeft / GameConstants.placementFailSeconds,
+        language: _selectedLanguage,
       ),
     );
   }

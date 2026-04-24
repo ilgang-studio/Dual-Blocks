@@ -14,6 +14,7 @@ import 'models/ui/game_layout.dart';
 import 'models/board/line_clear_result.dart';
 import 'models/board/preview_clear_result.dart';
 import 'models/ui/render_frame_data.dart';
+import 'localization/game_localization.dart';
 import 'systems/turn/alignment_turn_system.dart';
 import 'systems/fate/fate_effect_system.dart';
 import 'systems/turn/game_flow_system.dart';
@@ -108,7 +109,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   double _effectTime = 0;
   BlockThemeMode _themeMode = BlockThemeMode.solid;
   Color _customThemeColor = const Color(0xFFF59E0B);
-  String _selectedLanguage = 'English';
+  String _selectedLanguage = GameLocalization.english;
   bool _showThemeMenu = false;
   final ValueNotifier<bool> settingsModalVisible = ValueNotifier<bool>(false);
 
@@ -209,6 +210,7 @@ class DualBlocksGame extends FlameGame with TapCallbacks, DragCallbacks {
   }
 
   void setLanguage(String language) {
+    if (!GameLocalization.supportedLanguages.contains(language)) return;
     _selectedLanguage = language;
   }
 

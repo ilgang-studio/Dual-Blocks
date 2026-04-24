@@ -40,20 +40,31 @@ extension _GameFate on DualBlocksGame {
     String effectSummary;
     if (!_didClearLineThisTurn && _comboCount > 0) {
       _comboShieldActive = true;
-      effectSummary = 'Combo shield ready (1 turn)';
+      effectSummary = GameLocalization.angelEffectComboShield(
+        _selectedLanguage,
+      );
     } else {
       final removed = _queueMostFilledLineRemoval();
-      effectSummary = 'Most-filled line cleanup: $removed cell(s)';
+      effectSummary = GameLocalization.angelEffectCleanup(
+        _selectedLanguage,
+        removed,
+      );
     }
 
-    _showFateBanner(FateType.angel, 'Stored +$payout, $effectSummary');
+    _showFateBanner(
+      FateType.angel,
+      GameLocalization.angelBanner(_selectedLanguage, payout, effectSummary),
+    );
     debugPrint('[Angel Triggered] payout=$payout effect=$effectSummary');
     _evaluateGameOver();
   }
 
   void triggerDevilPenalty() {
     score = (score * 0.9).toInt();
-    _showFateBanner(FateType.devil, 'Devil penalty: -10% score');
+    _showFateBanner(
+      FateType.devil,
+      GameLocalization.devilPenaltyBanner(_selectedLanguage),
+    );
     debugPrint('[Devil Penalty] score reduced by 10%');
     _evaluateGameOver();
   }
