@@ -1,0 +1,5 @@
+package com.example.dual_blocks
+
+import io.flutter.embedding.android.FlutterActivity
+
+class MainActivity : FlutterActivity()
